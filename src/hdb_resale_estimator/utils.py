@@ -19,6 +19,9 @@ from omegaconf import OmegaConf
 import pandas as pd
 import yaml
 from omegaconf import DictConfig
+import json
+import requests
+from geopy.distance import geodesic
 
 logger = logging.getLogger(__name__)
 
@@ -123,11 +126,9 @@ def check_envvars() -> bool:
 
 
 def read_data(
-    data_path: str) -> pd.DataFrame:
+    data_path: str, concat: bool = True):
     """
     Read data from source.
-    Note: This function to be replaced by a `read_from_feast` function
-    in the future.
 
     Args:
         data_path (str): Path of data source
@@ -136,19 +137,21 @@ def read_data(
         pd.DataFrame: The data read from source.
     """
 
-    all_files = glob.glob(os.path.join(data_path , "*.csv"))
 
-    li = []
+    if concat:
+        all_files = glob.glob(os.path.join(data_path , "*.csv"))
+        li = []
+        for filename in all_files:
+            df = pd.read_csv(filename, index_col=None, header=0)
+            li.append(df)
 
-    for filename in all_files:
-        df = pd.read_csv(filename, index_col=None, header=0)
-        li.append(df)
+        dataframe = pd.concat(li, axis=0, ignore_index=True)
 
-    dataframe = pd.concat(li, axis=0, ignore_index=True)
+    else:
+        dataframe = pd.read_csv(data_path, index_col=None, header=0)
 
     return dataframe
-
-
+    
 def construct_dated_filepath(original_path: str, date: str) -> str:
     """A helper function to append a date to the end of a filepath.
     The function takes in "/home/examplefile.csv" and "2023-03-04" and
@@ -182,3 +185,57 @@ def generate_named_tmp_dir(dir_name: str) -> str:
     named_tmp_dir.mkdir()
 
     return named_tmp_dir
+
+
+def find_postal(add):
+    '''With the block number and street name, get the full address of the hdb flat,
+    including the postal code, geogaphical coordinates (lat/long)'''
+    
+    # Do not need to change the URL
+    url= "https://developers.onemap.sg/commonapi/search?returnGeom=Y&getAddrDetails=Y&pageNum=1&searchVal="+ add        
+    
+    # Retrieve information from website
+    response = requests.get(url)
+    try:
+        data = json.loads(response.text) 
+    except ValueError:
+        print('JSONDecodeError')
+        pass
+
+    if len(data["results"]) != 0:
+
+        result = data["results"][0]
+        latitude = float(result["LATITUDE"])
+        longitude = float(result["LONGITUDE"])
+
+        return latitude, longitude
+
+
+def find_nearest_amenity(coordinates, amenities, radius):
+    """_summary_
+
+    Args:
+        coordinates (_type_): _description_
+        amenities (_type_): _description_
+        radius (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    # first column must be address
+    # flat = house.iloc[index,0]
+    # 2nd column must be latitude, 3rd column must be longitude
+    no_of_amenities_within_radius = 0
+    distance_to_nearest_amenity = float("inf")
+    for ind, eachloc in enumerate(amenities.iloc[:,0]):
+        amenity_loc = (amenities.iloc[ind,1],amenities.iloc[ind,2])
+        distance = geodesic(coordinates,amenity_loc)
+        distance = float(str(distance)[:-3]) # convert to float
+
+        if distance <= radius:   # compute number of amenities in 2km radius
+            no_of_amenities_within_radius += 1
+
+        if distance < distance_to_nearest_amenity: # find nearest amenity
+            distance_to_nearest_amenity = distance
+        
+    return no_of_amenities_within_radius, distance_to_nearest_amenity

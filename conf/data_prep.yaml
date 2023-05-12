@@ -6,6 +6,8 @@ files:
 data_prep:
 
   data_cleaning:
+    files:
+      cpi: "data/for_data_cleaning/cpi.csv"
 
     flat_type:
       flat_types_remove:
@@ -19,24 +21,39 @@ data_prep:
         5 ROOM: 3
         EXECUTIVE: 4
 
-      flat_model:
-        flat_model_replace:
-          PREMIUM MAISONETTE: "MAISONETTE"
-          IMPROVED-MAISONETTE: "MAISONETTE"
-          MODEL A-MAISONETTE: "MAISONETTE"
-          PREMIUM APARTMENT LOFT: "APARTMENT"
-          TERRACE: "SPECIAL"
-          ADJOINED FLAT: "SPECIAL"
-          TYPE S1: "SPECIAL"
-          TYPE S2: "SPECIAL"
-          DBSS: "SPECIAL"
-          MODEL A2: "MODEL A"
-          PREMIUM APARTMENT: "APARTMENT"
-          IMPROVED: "STANDARD"
-          SIMPLIFIED: "MODEL A"
-          2-ROOM: "STANDARD"
+    flat_model:
+      flat_model_replace:
+        PREMIUM MAISONETTE: "MAISONETTE"
+        IMPROVED-MAISONETTE: "MAISONETTE"
+        MODEL A-MAISONETTE: "MAISONETTE"
+        PREMIUM APARTMENT LOFT: "APARTMENT"
+        TERRACE: "SPECIAL"
+        ADJOINED FLAT: "SPECIAL"
+        TYPE S1: "SPECIAL"
+        TYPE S2: "SPECIAL"
+        DBSS: "SPECIAL"
+        MODEL A2: "MODEL A"
+        PREMIUM APARTMENT: "APARTMENT"
+        IMPROVED: "STANDARD"
+        SIMPLIFIED: "MODEL A"
+        2-ROOM: "STANDARD"
 
       
 
   feature_engineering:
+
+    malls:
+      coordinates: "data/for_feature_engineering/malls/mall_coordinates.csv"
+      radius: 2
+    
+    schools:
+      coordinates: "data/for_feature_engineering/schools/school_coordinates.csv"
+      radius: 2
+
+    parks:
+      coordinates: "data/for_feature_engineering/parks/park_coordinates.csv"
+      radius: 2
+    
+
+
 

@@ -27,7 +27,7 @@ def main():
                 data_prep_config["files"]["training"]["raw_data_path"],
             )
             raw_hdb_data = hdb_est.utils.read_data(
-                data_path=data_prep_config["files"]["training"]["raw_data_path"]
+                data_path=data_prep_config["files"]["training"]["raw_data_path"], concat=True
             )
             logger.info("Shape of raw hdb data: %s", raw_hdb_data.shape)
 

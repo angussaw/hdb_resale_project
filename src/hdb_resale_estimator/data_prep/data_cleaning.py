@@ -46,9 +46,11 @@ class DataCleaner:
         Returns:
             cleaned_df (pd.DataFrame): cleaned and filtered hdb data
         """
+        
         self.filter_and_encode_flat_types()
         self.replace_flat_models()
         self.change_dtype()
+        self.adjust_resale(cpi_file_path = self.params["files"]["cpi"])
 
         return self.raw_hdb_data
 
@@ -75,6 +77,27 @@ class DataCleaner:
         """_summary_
         """
         self.raw_hdb_data["month"] = pd.to_datetime(self.raw_hdb_data["month"])
+
+
+    def adjust_resale(self, cpi_file_path:str):
+        """_summary_
+
+        Args:
+            cpi (_type_): _description_
+        """
+
+        cpi_data = hdb_est.utils.read_data(data_path = cpi_file_path, concat=False)
+        cpi_data["month"] = pd.to_datetime(cpi_data["month"])
+        self.raw_hdb_data = pd.merge(self.raw_hdb_data, cpi_data, how="left", on="month")
+        self.raw_hdb_data['resale_price'] = (self.raw_hdb_data['resale_price'] / self.raw_hdb_data['cpi']) * 100
+
+
+        
+
+
+
+
+
 
 
     
