@@ -211,13 +211,14 @@ def find_postal(add):
         return latitude, longitude
 
 
-def find_nearest_amenity(coordinates, amenities, radius):
+def find_nearest_amenity(row, amenities, radius, period=False):
     """_summary_
 
     Args:
-        coordinates (_type_): _description_
+        row (_type_): _description_
         amenities (_type_): _description_
         radius (_type_): _description_
+        period (bool, optional): _description_. Defaults to False.
 
     Returns:
         _type_: _description_
@@ -225,17 +226,22 @@ def find_nearest_amenity(coordinates, amenities, radius):
     # first column must be address
     # flat = house.iloc[index,0]
     # 2nd column must be latitude, 3rd column must be longitude
+    flat_coordinates = row["coordinates"]
+    month = row["month"]
     no_of_amenities_within_radius = 0
     distance_to_nearest_amenity = float("inf")
     for ind, eachloc in enumerate(amenities.iloc[:,0]):
-        amenity_loc = (amenities.iloc[ind,1],amenities.iloc[ind,2])
-        distance = geodesic(coordinates,amenity_loc)
-        distance = float(str(distance)[:-3]) # convert to float
+        amenity_coordinates = (amenities.iloc[ind,1],amenities.iloc[ind,2])
+        if period:
+            amenity_month = amenities.iloc[ind,3]
+            if month >= amenity_month:
+                distance = float(str(geodesic(flat_coordinates,amenity_coordinates))[:-3])
+        else:
+            distance = float(str(geodesic(flat_coordinates,amenity_coordinates))[:-3])
 
         if distance <= radius:   # compute number of amenities in 2km radius
             no_of_amenities_within_radius += 1
 
-        if distance < distance_to_nearest_amenity: # find nearest amenity
-            distance_to_nearest_amenity = distance
+        distance_to_nearest_amenity = min(distance, distance_to_nearest_amenity)
         
     return no_of_amenities_within_radius, distance_to_nearest_amenity

@@ -53,6 +53,10 @@ data_prep:
     parks:
       coordinates: "data/for_feature_engineering/parks/park_coordinates.csv"
       radius: 2
+
+    MRT_stations:
+      coordinates: "data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period.csv"
+      radius: 2
     
 
 
