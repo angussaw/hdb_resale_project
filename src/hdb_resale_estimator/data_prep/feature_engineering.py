@@ -1,5 +1,5 @@
 """
-feature_engineering.py will contain the neccessary class to perform feature engineering.
+feature_engineering.py will contain the neccessary FeatureEngineer class to perform feature engineering
 """
 from dateutil.relativedelta import relativedelta
 import functools
@@ -16,85 +16,164 @@ logger = logging.getLogger("__name__")
 tqdm_pandas(tqdm())
 
 class FeatureEngineer:
-    """FeatureEngineer 
+    """
+    FeatureEngineer class contains methods to calculate/extract
+    new derived features from existing features of each hdb flat
+    transaction.
+
+    Utilizes configuration parameters to generate 
+    these new features
     """
 
-    def __init__(self, params: dict) -> None:
-        self.params = params
+    def __init__(self, params: dict)-> None:
+        self.month_feature = params["month"]
+        self.feature_engineering_params = params["feature_engineering"]
+        self.year_feature = self.feature_engineering_params["year"]
+        self.year_month_feature = self.feature_engineering_params["year_month"]
 
-    def engineer_features(self, clean_hdb_data: pd.DataFrame) -> pd.DataFrame:
+    def engineer_features(self, hdb_data: pd.DataFrame) -> pd.DataFrame:
         """
-        Engineer features from cleaned mppa data
+        Engineer features from cleaned hdb data
 
         Returns:
            pd.DataFrame: Output dataframe containing
-           each customer and their respective mppa derived features
+           each hdb transaction and their respective derived features
         """
-        clean_hdb_data = clean_hdb_data.head(50)
+        hdb_data = hdb_data.head(50)
+        
+        logger.info("Mapping towns to regions...")
+        hdb_data = self.map_regions(hdb_data, self.feature_engineering_params["map_regions"])
 
-        logger.info("Generating lat long coordinates...")
-        hdb_data = self.generate_long_lat(hdb_data = clean_hdb_data)
+        logger.info("Extracting transaction's year and month...")
+        hdb_data = self.extract_year_month(hdb_data, self.feature_engineering_params["extract_year_month"])
 
-        logger.info("Getting nearest parks...")
-        nearest_parks = self.get_nearests_amenities(hdb_data = hdb_data, amenity="parks")
+        logger.info("Calculating lease age...")
+        hdb_data = self.calculate_lease_age(hdb_data, self.feature_engineering_params["calculate_lease_age"])
 
-        logger.info("Getting nearest schools...")
-        nearest_schools = self.get_nearests_amenities(hdb_data = hdb_data, amenity="schools")
-
-        logger.info("Getting nearest malls...")
-        nearest_malls = self.get_nearests_amenities(hdb_data = hdb_data, amenity="malls")
-
-        logger.info("Getting nearest MRT stations...")
-        nearest_mrt_stations = self.get_nearests_amenities(hdb_data = hdb_data, amenity="MRT_stations", period=True)
+        logger.info("Generating amenity features...")
+        amenity_features_list = self.generate_amenities_features(hdb_data, self.feature_engineering_params["generate_amenities_features"])
 
         logger.info("Merging hdb derived features...")
         derived_features_hdb = pd.concat([hdb_data,
-                                          nearest_parks,
-                                          nearest_schools,
-                                          nearest_malls,
-                                          nearest_mrt_stations], axis = 1)
+                                          amenity_features_list], axis = 1)
 
         return derived_features_hdb
+    
 
-
-    def generate_long_lat(self, hdb_data: pd.DataFrame):
-        """_summary_
+    def map_regions(self, hdb_data: pd.DataFrame, params: dict) -> pd.DataFrame:
+        """Function to map each town to its respective region
 
         Args:
-            hdb_data (_type_): _description_
+            hdb_data (pd.DataFrame): Dataframe containing each hdb transaction
+            params (dict): Config params
+
+        Returns:
+            pd.DataFrame: Dataframe containing each hdb transaction with regions feature
         """
-        hdb_data["coordinates"] = hdb_data.progress_apply(lambda x: hdb_est.utils.find_postal(x["block"] + " " + x["street_name"]), axis = 1)
+        region_feature = params['region']
+        town_feature  = params['town']
+        map_regions = params['map_regions']
+
+        hdb_data[region_feature] = hdb_data[town_feature].map({town: region for region, towns in map_regions for town in towns})
 
         return hdb_data
     
-
-    def get_nearests_amenities(self, hdb_data: pd.DataFrame, amenity: str, period = False):
-        """_summary_
+    def extract_year_month(self, hdb_data: pd.DataFrame) -> pd.DataFrame:
+        """Function to extract the transaction's respective year and month
 
         Args:
-            hdb_data (_type_): _description_
+            hdb_data (pd.DataFrame): Dataframe containing each hdb transaction
+
+        Returns:
+            pd.DataFrame: Dataframe containing each hdb transaction with year and month features
         """
-        amenity_coordinates_file_path = self.params[amenity]["coordinates"]
-        amenity_coordinates = hdb_est.utils.read_data(data_path = amenity_coordinates_file_path, concat=False)
+
+        hdb_data[self.year_month_feature] = hdb_data[self.month_feature]
+        hdb_data[self.month_feature] = hdb_data[self.year_month_feature].dt.month
+        hdb_data[self.year_feature] = hdb_data[self.year_month_feature].dt.year
+
+        return hdb_data
+    
+    def calculate_lease_age(self, hdb_data: pd.DataFrame, params: dict) -> pd.DataFrame:
+        """Function to calculate the lease age of the hdb flat
+
+        Args:
+            hdb_data (pd.DataFrame): Dataframe containing each hdb transaction
+            params (dict): Config params
+
+        Returns:
+            pd.DataFrame: Dataframe containing each hdb transaction with lease age feature
+        """
+        lease_age_feature = params['lease_age']
+        lease_commence_date_feature = params['lease_commence_date']
+
+        hdb_data[lease_age_feature] = hdb_data[self.year_feature] - hdb_data[lease_commence_date_feature]
+
+        return hdb_data
+
+    def generate_amenities_features(self, hdb_data: pd.DataFrame, params: dict) -> list:
+        """Function to generate amenity features
+
+        Args:
+            hdb_data (pd.DataFrame): Dataframe containing each hdb transaction
+            params (dict): Config params
+
+        Returns:
+            list: list of dataframes containing all amenity features
+        """
+
+        coordinates_feature = params['coordinates']
+        block_feature = params['block']
+        street_name_feature = params['street_name']
+        amenities = params['amenities']
+
+        logger.info("Generating lat long coordinates...")
+        hdb_data[coordinates_feature] = hdb_data.progress_apply(lambda x: hdb_est.utils.find_coordinates(x[block_feature] + " " + x[street_name_feature]), axis = 1)
+        amenity_features_list = []
+        for amenity in amenities:
+           logger.info(f"Getting nearest {amenity}...")
+           feature_df = self.get_nearests_amenities(self, hdb_data, amenity, coordinates_feature, **params[amenity])
+           amenity_features_list.append(feature_df)
+
+        return amenity_features_list
+
+    def get_nearests_amenities(self, hdb_data: pd.DataFrame, amenity: str, coordinates_feature, amenities_file_path: str, radius: int, period: bool) -> pd.DataFrame:
+        """Function to get the following features for each flat:
+                - no_of_amenities_within_radius
+                - distance_to_nearest_amenity
+
+        Args:
+            hdb_data (pd.DataFrame): Dataframe containing each hdb transaction
+            amenity (str): type of amenity (eg parks, schools, malls)
+            coordinates_feature(str): name of coordinates feature
+            amenities_file_path (str): file path containing the coordinates of each amenity location
+            radius (int): radius around the flat
+            period (bool): whether to take into account the opening date of the amenity
+
+        Returns:
+            pd.DataFrame: Dataframe containing the amenity-specific features 
+        """
+        amenity_details = hdb_est.utils.read_data(data_path = amenities_file_path, concat=False)
         if period:
-            amenity_coordinates = amenity_coordinates.rename(columns={"Opening year": "YEAR", "Opening month": "MONTH"})
-            amenity_coordinates["Opening month"] = pd.to_datetime(amenity_coordinates[['YEAR', 'MONTH']].assign(DAY=1))
-            amenity_coordinates = amenity_coordinates[["Name","LATITUDE", "LONGITUDE", "Opening month"]]
+            amenity_details = amenity_details.rename(columns={"Opening year": "YEAR", "Opening month": "MONTH"})
+            amenity_details[self.year_month_feature] = pd.to_datetime(amenity_details[['YEAR', 'MONTH']].assign(DAY=1))
+            amenity_details = amenity_details[["Name","LATITUDE", "LONGITUDE", self.year_month_feature]]
 
         else:
-            amenity_coordinates = amenity_coordinates[["address","LATITUDE", "LONGITUDE"]]
+            amenity_details = amenity_details[["address","LATITUDE", "LONGITUDE"]]
 
-        radius = self.params[amenity]["radius"]
         no_of_amenities_within_radius = f"no_of_{amenity}_within_{radius}_km"
         distance_to_nearest_amenity = f"distance_to_nearest_{amenity}"
 
-        amenity_features = pd.DataFrame(hdb_data.progress_apply(lambda row: hdb_est.utils.find_nearest_amenity(row,
-                                                                                                               amenity_coordinates,
-                                                                                                               radius = radius,
-                                                                                                               period = period),
-                                                                                                               axis = 1).tolist(),
-                                                                                                               columns=[no_of_amenities_within_radius,
-                                                                                                                        distance_to_nearest_amenity])
+        amenity_features = pd.DataFrame(hdb_data.progress_apply(lambda flat_transaction: hdb_est.utils.find_nearest_amenities(flat_transaction,
+                                                                                                                              amenity_details = amenity_details,
+                                                                                                                              radius = radius,
+                                                                                                                              period = period,
+                                                                                                                              coordinates_feature = coordinates_feature,
+                                                                                                                              year_month_feature = self.year_month_feature),
+                                                                                                                              axis = 1).tolist(),
+                                                                                                                              columns=[no_of_amenities_within_radius,
+                                                                                                                                       distance_to_nearest_amenity])
         
         return amenity_features
 

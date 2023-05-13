@@ -1,10 +1,8 @@
 """
-## data_preparation should contains the steps required to perform the following tasks:
-## 1. Data Cleaning
-## 2. Feature Engineering
+## data_prep_pipeline retrieves the raw data and data prep configuration,
+and initialises data preparation
 """
 import logging
-import os
 
 from hydra import compose, initialize
 
@@ -20,7 +18,6 @@ def main():
             logger.info("Starting data preparation pipeline")
             logger.info("Retrieving raw data and data preparation config...")
 
-
             logger.info("Performing data preparation in training mode...")
             logger.info(
                 "Reading raw data from %s...",
@@ -33,16 +30,14 @@ def main():
 
             logger.info("Initialising data preparation...")
             hdb_preprocessed = hdb_est.data_prep.data_preparation.data_prep_pipeline(
-                data_prep_config, raw_hdb_data, data_prep_mode="training"
+                data_prep_config["data_prep"], raw_hdb_data
             )
 
             hdb_preprocessed.to_csv(data_prep_config["files"]["training"]["preprocessed_save_path"])
 
+            number_of_nulls = hdb_preprocessed.isna().sum().sum()
 
-        logger.info("Data preparation completed!!!")
-
-
-            
+        logger.info(f"Data preparation completed!!! There are {number_of_nulls} null values present")
 
 
 if __name__ == "__main__":

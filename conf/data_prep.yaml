@@ -5,24 +5,24 @@ files:
 
 data_prep:
 
+  month: month
   data_cleaning:
-    files:
-      cpi: "data/for_data_cleaning/cpi.csv"
 
-    flat_type:
-      flat_types_remove:
+    adjust_resale:
+      resale_price: resale_price
+      cpi_file_path: "data/for_data_cleaning/cpi.csv"
+
+    remove_flat_types:
+      flat_type: "flat_type"
+      remove:
         - "2 ROOM"
         - "1 ROOM"
         - "MULTI-GENERATION"
         - "MULTI GENERATION"
-      flat_types_encode:
-        3 ROOM: 1
-        4 ROOM: 2
-        5 ROOM: 3
-        EXECUTIVE: 4
 
-    flat_model:
-      flat_model_replace:
+    replace_flat_models:
+      flat_model: flat_model
+      freplace:
         PREMIUM MAISONETTE: "MAISONETTE"
         IMPROVED-MAISONETTE: "MAISONETTE"
         MODEL A-MAISONETTE: "MAISONETTE"
@@ -42,21 +42,79 @@ data_prep:
 
   feature_engineering:
 
-    malls:
-      coordinates: "data/for_feature_engineering/malls/mall_coordinates.csv"
-      radius: 2
-    
-    schools:
-      coordinates: "data/for_feature_engineering/schools/school_coordinates.csv"
-      radius: 2
+    year: year
+    year_month: year_month
 
-    parks:
-      coordinates: "data/for_feature_engineering/parks/park_coordinates.csv"
-      radius: 2
+    generate_amenities_features:
+      coordinates: "coordinates"
+      block: "block"
+      street_name: "street_name"
+      amenities:
+        malls:
+          coordinates_file_path: "data/for_feature_engineering/malls/mall_coordinates.csv"
+          radius: 2
+          period: False
+        
+        schools:
+          coordinates_file_path: "data/for_feature_engineering/schools/school_coordinates.csv"
+          radius: 2
+          period: False
 
-    MRT_stations:
-      coordinates: "data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period.csv"
-      radius: 2
+        parks:
+          coordinates_file_path: "data/for_feature_engineering/parks/park_coordinates.csv"
+          radius: 2
+          period: False
+
+        MRT_stations:
+          coordinates_file_path: "data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period.csv"
+          radius: 2
+          period: True
+
+    extract_year_month:
+      month: month
+
+    calculate_lease_age:
+      lease_age: lease_age
+      lease_commence_date: lease_commence_date
+
+    map_regions:
+      region: "region"
+      town: "town"
+      mapping:
+        North: 
+          - WOODLANDS
+          - SEMBAWANG
+          - YISHUN
+          - BUKIT BATOK
+        Northeast:
+          - HOUGANG
+          - SENGKANG
+          - PUNGGOL
+          - ANG MO KIO
+          - SERANGOON
+        Central:
+          - BUKIT MERAH
+          - CENTRAL AREA
+          - BISHAN
+          - GEYLANG
+          - KALLANG/WHAMPOA
+          - QUEENSTOWN
+          - TOA PAYOH
+          - MARINE PARADE
+        West:
+          - JURONG WEST
+          - JURONG EAST
+          - CLEMENTI
+          - BUKIT PANJANG
+          - BUKIT TIMAH
+          - CHOA CHU KANG
+          - LIM CHU KANG
+        North: 
+          - PASIR RIS
+          - TAMPINES
+          - BEDOK
+
+
     
 
 

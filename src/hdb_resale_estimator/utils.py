@@ -1,5 +1,5 @@
 """Utils.py contains the general functions that will be used in during the end-to-end
- pipeline of credit_score_classifier
+ pipeline of hdb estimator
 """
 from contextlib import contextmanager
 import hashlib
@@ -126,17 +126,18 @@ def check_envvars() -> bool:
 
 
 def read_data(
-    data_path: str, concat: bool = True):
-    """
-    Read data from source.
+    data_path: str, concat: bool = True) -> pd.DataFrame:
+    """Helper function to read data from a specified
+    file path
+
 
     Args:
-        data_path (str): Path of data source
+        data_path (str): file directory to read data files from
+        concat (bool, optional): boolean to indicate whether to concat all data files. Defaults to True.
 
     Returns:
-        pd.DataFrame: The data read from source.
+        pd.DataFrame: resulting dataframe read from file directory
     """
-
 
     if concat:
         all_files = glob.glob(os.path.join(data_path , "*.csv"))
@@ -187,9 +188,16 @@ def generate_named_tmp_dir(dir_name: str) -> str:
     return named_tmp_dir
 
 
-def find_postal(add):
-    '''With the block number and street name, get the full address of the hdb flat,
-    including the postal code, geogaphical coordinates (lat/long)'''
+def find_coordinates(add: str) -> tuple:
+    """With the block number and street name, get the full address of the hdb flat,
+    including the postal code, geogaphical coordinates (lat/long)
+
+    Args:
+        add (str): block number and street name
+
+    Returns:
+        tuple: latitude and longitude coordinates
+    """
     
     # Do not need to change the URL
     url= "https://developers.onemap.sg/commonapi/search?returnGeom=Y&getAddrDetails=Y&pageNum=1&searchVal="+ add        
@@ -205,43 +213,51 @@ def find_postal(add):
     if len(data["results"]) != 0:
 
         result = data["results"][0]
-        latitude = float(result["LATITUDE"])
-        longitude = float(result["LONGITUDE"])
+        latitude, longitude = float(result["LATITUDE"]), float(result["LONGITUDE"])
+
+    else:
+        latitude, longitude = float("inf"), float("inf")
 
         return latitude, longitude
 
 
-def find_nearest_amenity(row, amenities, radius, period=False):
-    """_summary_
+def find_nearest_amenities(flat_transaction,
+                           amenity_details: pd.DataFrame,
+                           radius: int,
+                           period: bool,
+                           coordinates_feature: str,
+                           year_month_feature: str) -> tuple:
+    """Function to find the number of amenities within radius
+    of a flat, and also the flat's distance to the nearest amenity
 
     Args:
-        row (_type_): _description_
-        amenities (_type_): _description_
-        radius (_type_): _description_
-        period (bool, optional): _description_. Defaults to False.
+        flat_transaction (_type_): flat transaction details (eg year_month, coordinates)
+        amenity_details (pd.DataFrame): amenity details (eg year_month, coordinates)
+        radius (int): radius around the flat
+        period (bool): whether to take into account the opening date of the amenity
+        coordinates_feature(str): name of coordinates feature
+        year_month_feature (str): name of year_month feature
 
     Returns:
-        _type_: _description_
+        tuple: nearest amenities information for the flat
     """
-    # first column must be address
-    # flat = house.iloc[index,0]
-    # 2nd column must be latitude, 3rd column must be longitude
-    flat_coordinates = row["coordinates"]
-    month = row["month"]
+    flat_coordinates = flat_transaction[coordinates_feature]
+    transaction_year_month = flat_transaction[year_month_feature]
     no_of_amenities_within_radius = 0
     distance_to_nearest_amenity = float("inf")
-    for ind, eachloc in enumerate(amenities.iloc[:,0]):
-        amenity_coordinates = (amenities.iloc[ind,1],amenities.iloc[ind,2])
-        if period:
-            amenity_month = amenities.iloc[ind,3]
-            if month >= amenity_month:
+    if flat_coordinates != (float("inf"), float("inf")):
+        for ind, eachloc in enumerate(amenity_details.iloc[:,0]):
+            amenity_coordinates = (amenity_details.iloc[ind,1],amenity_details.iloc[ind,2])
+            if period:
+                amenity_year_month = amenity_details.iloc[ind,3]
+                if transaction_year_month >= amenity_year_month:
+                    distance = float(str(geodesic(flat_coordinates,amenity_coordinates))[:-3])
+            else:
                 distance = float(str(geodesic(flat_coordinates,amenity_coordinates))[:-3])
-        else:
-            distance = float(str(geodesic(flat_coordinates,amenity_coordinates))[:-3])
 
-        if distance <= radius:   # compute number of amenities in 2km radius
-            no_of_amenities_within_radius += 1
+            if distance <= radius:   # compute number of amenities in 2km radius
+                no_of_amenities_within_radius += 1
 
-        distance_to_nearest_amenity = min(distance, distance_to_nearest_amenity)
+            distance_to_nearest_amenity = min(distance, distance_to_nearest_amenity)
         
     return no_of_amenities_within_radius, distance_to_nearest_amenity

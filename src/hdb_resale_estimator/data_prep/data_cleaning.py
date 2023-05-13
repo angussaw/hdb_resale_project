@@ -1,10 +1,8 @@
-"""Call clean_data function to clean, impute and hdb data.
+"""
+data_cleaning.py will contain the neccessary DataCleaner class to clean, filter and impute the raw hdb data
 """
 import logging
-from datetime import datetime
-import os
 import pandas as pd
-import numpy as np
 
 import hdb_resale_estimator as hdb_est
 
@@ -16,28 +14,10 @@ class DataCleaner:
     def __init__(
         self, raw_hdb_data: pd.DataFrame, params: dict
     ) -> None:
-        """
-        Args:
-            raw_hdb_data (pd.DataFrame):
-        """
-        # Init raw data
+        
         self.raw_hdb_data = raw_hdb_data
-        self.params = params
-        # self.inference_date = params["inference_date"]
-
-        # self.phone_number = params["phone_number"]
-        # self.trx_date = params["trx_date"]
-        # self.itm_price = params["itm_price"]
-        # self.itm_qty = params["itm_qty"]
-        # self.trx_id = params["trx_id"]
-        # self.trx_amt = params["trx_amt"]
-        # self.disc_amt = params["disc_amt"]
-        # self.bad_borrower = params["bad_borrower"]
-        # self.open_date = params["open_date"]
-        # self.dt_id = params["dt_id"]
-        # self.kolektabilitas = params["kolektabilitas"]
-        # self.months_before_loan_start = params["months_before_loan_start"]
-        # self.data_cleaning_params = params["data_cleaning"]
+        self.month_feature = params["month"]
+        self.data_cleaning_params = params["data_cleaning"]
 
     def clean_data(self) -> pd.DataFrame:
         """Takes in raw hdb data, performs cleaning and filtering
@@ -47,49 +27,56 @@ class DataCleaner:
             cleaned_df (pd.DataFrame): cleaned and filtered hdb data
         """
         
-        self.filter_and_encode_flat_types()
-        self.replace_flat_models()
+        self.remove_flat_types(self.data_cleaning_params["remove_flat_types"])
+        self.replace_flat_models(self.data_cleaning_params["replace_flat_models"])
         self.change_dtype()
-        self.adjust_resale(cpi_file_path = self.params["files"]["cpi"])
+        self.adjust_resale(self.data_cleaning_params["adjust_resale"])
 
         return self.raw_hdb_data
 
 
-    def filter_and_encode_flat_types(self):
-        """_summary_
-        """
-        self.raw_hdb_data = self.raw_hdb_data[~self.raw_hdb_data["flat_type"].isin(self.params["flat_type"]["flat_types_remove"])]
-        self.raw_hdb_data["flat_type"] = self.raw_hdb_data["flat_type"].map(self.params["flat_type"]["flat_types_encode"])
-
-    def replace_flat_models(self):
-        """_summary_
-        """
-        self.raw_hdb_data["flat_model"] = self.raw_hdb_data["flat_model"].apply(lambda x: x.upper())
-        self.raw_hdb_data["flat_model"] = self.raw_hdb_data["flat_model"].replace(self.params["flat_model"]["flat_model_replace"])
-
-    def encode_storey_range(self):
-        """_summary_
-        """
-
-        pass
-
-    def change_dtype(self):
-        """_summary_
-        """
-        self.raw_hdb_data["month"] = pd.to_datetime(self.raw_hdb_data["month"])
-
-
-    def adjust_resale(self, cpi_file_path:str):
-        """_summary_
+    def remove_flat_types(self, params: dict):
+        """Function to remove unwanted flat types
 
         Args:
-            cpi (_type_): _description_
+            params (dict): Config params
+        """
+        flat_type_feature = params["flat_type"]
+
+        self.raw_hdb_data = self.raw_hdb_data[~self.raw_hdb_data[flat_type_feature].isin(params["remove"])]
+
+    def replace_flat_models(self, params: dict):
+        """Function to replace flat models with specific values
+        Args:
+            params (dict): Config params
+        """
+        flat_model_feature = params["flat_model"]
+
+        self.raw_hdb_data[flat_model_feature] = self.raw_hdb_data[flat_model_feature].apply(lambda x: x.upper())
+        self.raw_hdb_data[flat_model_feature] = self.raw_hdb_data[flat_model_feature].replace(params["replace"])
+
+    def change_dtype(self):
+
+        """Function to change data types of certain columns
         """
 
+        self.raw_hdb_data[self.month_feature] = pd.to_datetime(self.raw_hdb_data[self.month_feature])
+
+
+    def adjust_resale(self, params: dict):
+        """Function to factor in consumer price index into 
+        hdb transaction resale price
+
+        Args:
+            params (dict): Config params
+        """
+        resale_price_feature = params["resale_price"]
+        cpi_file_path = params["cpi_file_path"]
+
         cpi_data = hdb_est.utils.read_data(data_path = cpi_file_path, concat=False)
-        cpi_data["month"] = pd.to_datetime(cpi_data["month"])
-        self.raw_hdb_data = pd.merge(self.raw_hdb_data, cpi_data, how="left", on="month")
-        self.raw_hdb_data['resale_price'] = (self.raw_hdb_data['resale_price'] / self.raw_hdb_data['cpi']) * 100
+        cpi_data[self.month_feature] = pd.to_datetime(cpi_data[self.month_feature])
+        self.raw_hdb_data = pd.merge(self.raw_hdb_data, cpi_data, how="left", on=self.month_feature)
+        self.raw_hdb_data[resale_price_feature] = (self.raw_hdb_data[resale_price_feature] / self.raw_hdb_data['cpi']) * 100
 
 
         
