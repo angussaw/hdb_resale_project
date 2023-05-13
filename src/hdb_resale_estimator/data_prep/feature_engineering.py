@@ -45,7 +45,7 @@ class FeatureEngineer:
         hdb_data = self.map_regions(hdb_data, self.feature_engineering_params["map_regions"])
 
         logger.info("Extracting transaction's year and month...")
-        hdb_data = self.extract_year_month(hdb_data, self.feature_engineering_params["extract_year_month"])
+        hdb_data = self.extract_year_month(hdb_data)
 
         logger.info("Calculating lease age...")
         hdb_data = self.calculate_lease_age(hdb_data, self.feature_engineering_params["calculate_lease_age"])
@@ -54,8 +54,8 @@ class FeatureEngineer:
         amenity_features_list = self.generate_amenities_features(hdb_data, self.feature_engineering_params["generate_amenities_features"])
 
         logger.info("Merging hdb derived features...")
-        derived_features_hdb = pd.concat([hdb_data,
-                                          amenity_features_list], axis = 1)
+        derived_features_hdb = pd.concat([hdb_data]+
+                                          amenity_features_list, axis = 1)
 
         return derived_features_hdb
     
@@ -72,9 +72,9 @@ class FeatureEngineer:
         """
         region_feature = params['region']
         town_feature  = params['town']
-        map_regions = params['map_regions']
+        map_regions = params['mapping']
 
-        hdb_data[region_feature] = hdb_data[town_feature].map({town: region for region, towns in map_regions for town in towns})
+        hdb_data[region_feature] = hdb_data[town_feature].map({town: region for region, towns in map_regions.items() for town in towns})
 
         return hdb_data
     
@@ -132,7 +132,7 @@ class FeatureEngineer:
         amenity_features_list = []
         for amenity in amenities:
            logger.info(f"Getting nearest {amenity}...")
-           feature_df = self.get_nearests_amenities(self, hdb_data, amenity, coordinates_feature, **params[amenity])
+           feature_df = self.get_nearests_amenities(hdb_data, amenity, coordinates_feature, **amenities[amenity])
            amenity_features_list.append(feature_df)
 
         return amenity_features_list

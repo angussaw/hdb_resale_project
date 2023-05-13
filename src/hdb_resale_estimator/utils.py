@@ -198,7 +198,6 @@ def find_coordinates(add: str) -> tuple:
     Returns:
         tuple: latitude and longitude coordinates
     """
-    
     # Do not need to change the URL
     url= "https://developers.onemap.sg/commonapi/search?returnGeom=Y&getAddrDetails=Y&pageNum=1&searchVal="+ add        
     
@@ -211,14 +210,13 @@ def find_coordinates(add: str) -> tuple:
         pass
 
     if len(data["results"]) != 0:
-
         result = data["results"][0]
         latitude, longitude = float(result["LATITUDE"]), float(result["LONGITUDE"])
 
     else:
         latitude, longitude = float("inf"), float("inf")
 
-        return latitude, longitude
+    return latitude, longitude
 
 
 def find_nearest_amenities(flat_transaction,

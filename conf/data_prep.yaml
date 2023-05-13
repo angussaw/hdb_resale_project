@@ -22,7 +22,7 @@ data_prep:
 
     replace_flat_models:
       flat_model: flat_model
-      freplace:
+      replace:
         PREMIUM MAISONETTE: "MAISONETTE"
         IMPROVED-MAISONETTE: "MAISONETTE"
         MODEL A-MAISONETTE: "MAISONETTE"
@@ -51,27 +51,24 @@ data_prep:
       street_name: "street_name"
       amenities:
         malls:
-          coordinates_file_path: "data/for_feature_engineering/malls/mall_coordinates.csv"
+          amenities_file_path: "data/for_feature_engineering/malls/mall_coordinates.csv"
           radius: 2
           period: False
         
         schools:
-          coordinates_file_path: "data/for_feature_engineering/schools/school_coordinates.csv"
+          amenities_file_path: "data/for_feature_engineering/schools/school_coordinates.csv"
           radius: 2
           period: False
 
         parks:
-          coordinates_file_path: "data/for_feature_engineering/parks/park_coordinates.csv"
+          amenities_file_path: "data/for_feature_engineering/parks/park_coordinates.csv"
           radius: 2
           period: False
 
         MRT_stations:
-          coordinates_file_path: "data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period.csv"
+          amenities_file_path: "data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period.csv"
           radius: 2
           period: True
-
-    extract_year_month:
-      month: month
 
     calculate_lease_age:
       lease_age: lease_age
@@ -109,7 +106,7 @@ data_prep:
           - BUKIT TIMAH
           - CHOA CHU KANG
           - LIM CHU KANG
-        North: 
+        East: 
           - PASIR RIS
           - TAMPINES
           - BEDOK

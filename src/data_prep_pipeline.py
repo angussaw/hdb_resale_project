@@ -32,13 +32,12 @@ def main():
             hdb_preprocessed = hdb_est.data_prep.data_preparation.data_prep_pipeline(
                 data_prep_config["data_prep"], raw_hdb_data
             )
-
-            hdb_preprocessed.to_csv(data_prep_config["files"]["training"]["preprocessed_save_path"])
-
             number_of_nulls = hdb_preprocessed.isna().sum().sum()
+            logger.info(f"Data preparation completed!!! There are {number_of_nulls} null values present")
 
-        logger.info(f"Data preparation completed!!! There are {number_of_nulls} null values present")
+        hdb_preprocessed.to_csv(data_prep_config["files"]["training"]["preprocessed_save_path"])
 
+            
 
 if __name__ == "__main__":
     main()

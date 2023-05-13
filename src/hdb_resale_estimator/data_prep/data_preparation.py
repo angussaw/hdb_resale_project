@@ -43,7 +43,7 @@ def data_prep_pipeline(
     logger.info("Generating hdb derived features...")
     with hdb_est.utils.timer("hdb derived feature generation"):
         derived_data_hdb = feature_engineer.engineer_features(
-            clean_hdb_data=clean_hdb_data
+            hdb_data=clean_hdb_data
         )
         logger.info("Shape of hdb derived features: %s", derived_data_hdb.shape)
 
