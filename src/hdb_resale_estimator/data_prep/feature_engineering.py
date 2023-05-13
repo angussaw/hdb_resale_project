@@ -36,7 +36,7 @@ class FeatureEngineer:
            pd.DataFrame: Output dataframe containing
            each hdb transaction and their respective derived features
         """
-                
+
         logger.info("Mapping towns to regions...")
         hdb_data = self.map_regions(hdb_data, self.feature_engineering_params["map_regions"])
 

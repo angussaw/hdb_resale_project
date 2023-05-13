@@ -8,4 +8,6 @@ sqlalchemy==1.4.46
 psycopg2-binary==2.9.6
 pylint==2.15.0
 pytest-cov==4.0.0
-
+tqdm==4.65.0
+geopy==2.3.0
+requests==2.30.0
