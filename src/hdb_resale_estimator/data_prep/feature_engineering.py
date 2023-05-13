@@ -1,12 +1,9 @@
 """
 feature_engineering.py will contain the neccessary FeatureEngineer class to perform feature engineering
 """
-from dateutil.relativedelta import relativedelta
-import functools
+from datetime import datetime
 import logging
-from typing import Callable, List, Tuple
-
-import numpy as np
+import os
 import pandas as pd
 from tqdm import tqdm_pandas, tqdm
 
@@ -39,8 +36,7 @@ class FeatureEngineer:
            pd.DataFrame: Output dataframe containing
            each hdb transaction and their respective derived features
         """
-        hdb_data = hdb_data.head(50)
-        
+                
         logger.info("Mapping towns to regions...")
         hdb_data = self.map_regions(hdb_data, self.feature_engineering_params["map_regions"])
 
@@ -56,6 +52,8 @@ class FeatureEngineer:
         logger.info("Merging hdb derived features...")
         derived_features_hdb = pd.concat([hdb_data]+
                                           amenity_features_list, axis = 1)
+        
+        derived_features_hdb["date_context"] = datetime.strptime(os.getenv("DATE"), "%Y-%m-%d")
 
         return derived_features_hdb
     
@@ -122,22 +120,36 @@ class FeatureEngineer:
             list: list of dataframes containing all amenity features
         """
 
-        coordinates_feature = params['coordinates']
+        latitude_feature = params['latitude']
+        longitude_feature = params['longitude']
         block_feature = params['block']
         street_name_feature = params['street_name']
         amenities = params['amenities']
 
         logger.info("Generating lat long coordinates...")
-        hdb_data[coordinates_feature] = hdb_data.progress_apply(lambda x: hdb_est.utils.find_coordinates(x[block_feature] + " " + x[street_name_feature]), axis = 1)
-        amenity_features_list = []
+        hdb_coordinates = pd.DataFrame(hdb_data.progress_apply(lambda x: hdb_est.utils.find_coordinates(x[block_feature] + " " + x[street_name_feature]), axis = 1).tolist(),
+                                                                                                                                                            columns=[latitude_feature,
+                                                                                                                                                                    longitude_feature])
+        amenity_features_list = [hdb_coordinates]
         for amenity in amenities:
            logger.info(f"Getting nearest {amenity}...")
-           feature_df = self.get_nearests_amenities(hdb_data, amenity, coordinates_feature, **amenities[amenity])
+           feature_df = self.get_nearests_amenities(pd.concat([hdb_coordinates, hdb_data[self.year_month_feature]], axis = 1),
+                                                              amenity,
+                                                              latitude_feature,
+                                                              longitude_feature,
+                                                              **amenities[amenity])
            amenity_features_list.append(feature_df)
 
         return amenity_features_list
 
-    def get_nearests_amenities(self, hdb_data: pd.DataFrame, amenity: str, coordinates_feature, amenities_file_path: str, radius: int, period: bool) -> pd.DataFrame:
+    def get_nearests_amenities(self,
+                               hdb_coordinates: pd.DataFrame,
+                               amenity: str,
+                               latitude_feature: str,
+                               longitude_feature: str,
+                               amenities_file_path: str,
+                               radius: int,
+                               period: bool) -> pd.DataFrame:
         """Function to get the following features for each flat:
                 - no_of_amenities_within_radius
                 - distance_to_nearest_amenity
@@ -165,15 +177,16 @@ class FeatureEngineer:
         no_of_amenities_within_radius = f"no_of_{amenity}_within_{radius}_km"
         distance_to_nearest_amenity = f"distance_to_nearest_{amenity}"
 
-        amenity_features = pd.DataFrame(hdb_data.progress_apply(lambda flat_transaction: hdb_est.utils.find_nearest_amenities(flat_transaction,
-                                                                                                                              amenity_details = amenity_details,
-                                                                                                                              radius = radius,
-                                                                                                                              period = period,
-                                                                                                                              coordinates_feature = coordinates_feature,
-                                                                                                                              year_month_feature = self.year_month_feature),
-                                                                                                                              axis = 1).tolist(),
-                                                                                                                              columns=[no_of_amenities_within_radius,
-                                                                                                                                       distance_to_nearest_amenity])
+        amenity_features = pd.DataFrame(hdb_coordinates.progress_apply(lambda coordinates: hdb_est.utils.find_nearest_amenities(coordinates,
+                                                                                                                               amenity_details = amenity_details,
+                                                                                                                               radius = radius,
+                                                                                                                               period = period,
+                                                                                                                               latitude_feature = latitude_feature,
+                                                                                                                               longitude_feature = longitude_feature,
+                                                                                                                               year_month_feature = self.year_month_feature),
+                                                                                                                               axis = 1).tolist(),
+                                                                                                                               columns=[no_of_amenities_within_radius,
+                                                                                                                                        distance_to_nearest_amenity])
         
         return amenity_features
 

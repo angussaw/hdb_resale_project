@@ -22,6 +22,7 @@ from omegaconf import DictConfig
 import json
 import requests
 from geopy.distance import geodesic
+import sqlalchemy
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +224,8 @@ def find_nearest_amenities(flat_transaction,
                            amenity_details: pd.DataFrame,
                            radius: int,
                            period: bool,
-                           coordinates_feature: str,
+                           latitude_feature: str,
+                           longitude_feature: str,
                            year_month_feature: str) -> tuple:
     """Function to find the number of amenities within radius
     of a flat, and also the flat's distance to the nearest amenity
@@ -239,7 +241,7 @@ def find_nearest_amenities(flat_transaction,
     Returns:
         tuple: nearest amenities information for the flat
     """
-    flat_coordinates = flat_transaction[coordinates_feature]
+    flat_coordinates = (flat_transaction[latitude_feature], flat_transaction[longitude_feature])
     transaction_year_month = flat_transaction[year_month_feature]
     no_of_amenities_within_radius = 0
     distance_to_nearest_amenity = float("inf")
@@ -259,3 +261,158 @@ def find_nearest_amenities(flat_transaction,
             distance_to_nearest_amenity = min(distance, distance_to_nearest_amenity)
         
     return no_of_amenities_within_radius, distance_to_nearest_amenity
+
+
+def check_postgres_env() -> None:
+    """Verify that required Postgres environment variables have been exported.
+
+    Raises:
+        KeyError: Error is raised when env variable is not exported yet.
+    """
+    for envvar in [
+        "POSTGRES_USER",
+        "POSTGRES_PWD",
+        "POSTGRES_HOST",
+        "POSTGRES_PORT",
+        "POSTGRES_DB",
+    ]:
+        try:
+            os.environ[envvar]
+        except KeyError:
+            logger.warning("<< %s >> not found", envvar)
+            raise KeyError("Ensure that Postgres env is set before saving to Postgres")
+        
+
+def create_postgres_engine() -> sqlalchemy.engine:
+    """Create engine to connect to Postgres database
+
+    Raises:
+        KeyError: Raise error if environment variable cannot be found
+
+    Returns:
+        sqlalchemy.engine: sqlalchemy engine for postgres database
+    """
+    check_postgres_env()
+
+    url_object = sqlalchemy.engine.URL.create(
+        "postgresql+psycopg2",
+        username=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PWD"),
+        host=os.getenv("POSTGRES_HOST"),
+        port=os.getenv("POSTGRES_PORT"),
+        database=os.getenv("POSTGRES_DB"),
+    )
+    engine = sqlalchemy.create_engine(url_object, pool_size=5, pool_recycle=3600)
+
+    return engine
+
+# def extract_data_from_psql(table_name: str, feature_service: str) -> pd.DataFrame:
+#     """Extract data from Postgres via feast
+
+#     Args:
+#         table_name (str): Postgres table name to extract data from.
+#         feature_service (str): Feature service to apply for Feast to indicate which
+#                                features to extract
+
+#     Returns:
+#         (pd.DataFrame): Extracted data from Postgres.
+#     """
+#     check_postgres_env()
+#     check_feast_env()
+#     feast_env = os.getenv("FEAST_MVM_ENVIRONMENT")
+#     # Load FeatureStore configuration
+#     repo_config = RepoConfig(
+#         project=f"mvm_{feast_env}",
+#         provider="aws",
+#         registry=os.getenv("FEAST_REGISTRY_URI"),
+#         online_store=None,
+#         offline_store={
+#             "type": "postgres",
+#             "host": os.getenv("POSTGRES_HOST"),
+#             "port": os.getenv("POSTGRES_PORT"),
+#             "database": os.getenv("POSTGRES_DB"),
+#             "db_schema": "public",
+#             "user": os.getenv("POSTGRES_USER"),
+#             "password": os.getenv("POSTGRES_PWD"),
+#         },
+#         entity_key_serialization_version=2,
+#     )
+
+#     # Create a feature store object
+#     store = FeatureStore(config=repo_config)
+#     # Define entity for get_historical_features function for FeatureStore
+#     entity_sql = f"""
+#         SELECT
+#             phone_number,
+#             MAX(sub.date_context) AS event_timestamp
+#         FROM (SELECT * FROM {table_name}) AS sub
+#         WHERE date_context = '{os.getenv("DATE")}'
+#         GROUP BY phone_number
+#     """
+#     # Extract data from postgres table using feature service from Feast
+#     extracted_df = store.get_historical_features(
+#         entity_df=entity_sql, features=store.get_feature_service(feature_service)
+#     ).to_df()
+
+#     return extracted_df
+
+def push_data_to_sql(
+    db_engine: sqlalchemy.engine, data: pd.DataFrame, table_name: str
+) -> None:
+    """Save data into postgres database
+
+    Args:
+        data (str): Data that is to be saved
+        table_name (str): Name of postgres table
+        db_engine (sqlalchemy.engine): Postgres database engine
+    """
+    with db_engine.begin() as conn:
+        check_duplicate_date_input(conn, data, table_name)
+        data.to_sql(
+            table_name,
+            conn,
+            if_exists="append",
+            index=False,
+            chunksize=500,
+            method="multi",
+        )
+
+def check_duplicate_date_input(
+    conn: sqlalchemy.engine.base.Connection, data: pd.DataFrame, table_name: str
+) -> None:
+    """Check if date_context or date_of_inference of data exist within the table to be appended
+
+    Args:
+        conn (sqlalchemy.engine.base.Connection): Connection to sqlalchemy
+        data (pd.DataFrame): Data to be pushed to psql
+        table_name (str): Table_name in psql server
+
+    Raises:
+        ValueError: Error is raised when date_context or date_of_inference in table_name exists to prevent duplicate entries
+    """
+    # Check data for date related column
+    if "date_context" in data.columns:
+        reference_column = "date_context"
+    elif "date_of_inference" in data.columns:
+        reference_column = "date_of_inference"
+    else:
+        raise ValueError(
+            f"date_context or date_of_inference does not exist. Columns in data: {data.columns}"
+        )
+
+    # Get date_context or date_of_inference in string format from data
+    reference_column_value = str(np.datetime64(data[reference_column].unique()[0], "D"))
+
+    query = f"""SELECT COUNT(*)
+                FROM {table_name}
+                WHERE {reference_column} = '{reference_column_value}'
+                """
+
+    result = conn.execute(query)
+    for row in result:
+        # row is a tuple for this query
+        date_context_rows = row[0]
+    if date_context_rows > 0:
+        raise ValueError(
+            f"{reference_column} {reference_column_value} already exist in {table_name}"
+        )

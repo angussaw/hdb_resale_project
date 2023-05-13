@@ -1,7 +1,9 @@
 files:
   training:
-      raw_data_path: "data/raw/for_training/"
-      preprocessed_save_path: "data/preprocessed/for_training/hdb_preprocessed.csv"
+    raw_data_path: "data/raw/for_training/"
+    save_to_source: "postgres"
+    preprocessed_save_path: "data/preprocessed/for_training/hdb_preprocessed.csv"
+    derived_features_table_name: "hdb_training_features"
 
 data_prep:
 
@@ -46,7 +48,8 @@ data_prep:
     year_month: year_month
 
     generate_amenities_features:
-      coordinates: "coordinates"
+      latitude: "latitude"
+      longitude: "longitude"
       block: "block"
       street_name: "street_name"
       amenities:
