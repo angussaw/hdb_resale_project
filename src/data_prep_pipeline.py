@@ -19,12 +19,8 @@ def main():
             logger.info("Retrieving raw data and data preparation config...")
 
             logger.info("Performing data preparation in training mode...")
-            logger.info(
-                "Reading raw data from %s...",
-                data_prep_config["files"]["training"]["raw_data_path"],
-            )
-            raw_hdb_data = hdb_est.utils.read_data(
-                data_path=data_prep_config["files"]["training"]["raw_data_path"], concat=True
+            raw_hdb_data = hdb_est.utils.read_data(source=data_prep_config["files"]["training"]["raw_data"]["read_from_source"],
+                                                   params=data_prep_config["files"]["training"]["raw_data"]["params"]
             )
             logger.info("Shape of raw hdb data: %s", raw_hdb_data.shape)
 

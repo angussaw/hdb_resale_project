@@ -126,7 +126,18 @@ def check_envvars() -> bool:
     return return_status
 
 
-def read_data(
+def read_data(source: str, params: dict) -> pd.DataFrame:
+
+    if source == "csv":
+        dataframe = read_csv(**params)
+
+
+    elif source == "postgres":
+        dataframe = extract_data_from_psql(**params)
+
+    return dataframe
+
+def read_csv(
     data_path: str, concat: bool = True) -> pd.DataFrame:
     """Helper function to read data from a specified
     file path
@@ -306,55 +317,21 @@ def create_postgres_engine() -> sqlalchemy.engine:
 
     return engine
 
-# def extract_data_from_psql(table_name: str, feature_service: str) -> pd.DataFrame:
-#     """Extract data from Postgres via feast
+def extract_data_from_psql(table_name: str, columns:list) -> pd.DataFrame:
+    """"""
 
-#     Args:
-#         table_name (str): Postgres table name to extract data from.
-#         feature_service (str): Feature service to apply for Feast to indicate which
-#                                features to extract
+    check_postgres_env()
+    db_engine = create_postgres_engine()
+    columns_query = ", ".join(['"'+column+'"' for column in columns])
+    sql_query = f"""
+        SELECT {columns_query} FROM {table_name}
+        WHERE date_context = (SELECT MAX(date_context) FROM {table_name})
+    """
+    # Extract data from postgres table
+    with db_engine.begin() as conn:
+        extracted_df = pd.read_sql(sql_query, conn)
 
-#     Returns:
-#         (pd.DataFrame): Extracted data from Postgres.
-#     """
-#     check_postgres_env()
-#     check_feast_env()
-#     feast_env = os.getenv("FEAST_MVM_ENVIRONMENT")
-#     # Load FeatureStore configuration
-#     repo_config = RepoConfig(
-#         project=f"mvm_{feast_env}",
-#         provider="aws",
-#         registry=os.getenv("FEAST_REGISTRY_URI"),
-#         online_store=None,
-#         offline_store={
-#             "type": "postgres",
-#             "host": os.getenv("POSTGRES_HOST"),
-#             "port": os.getenv("POSTGRES_PORT"),
-#             "database": os.getenv("POSTGRES_DB"),
-#             "db_schema": "public",
-#             "user": os.getenv("POSTGRES_USER"),
-#             "password": os.getenv("POSTGRES_PWD"),
-#         },
-#         entity_key_serialization_version=2,
-#     )
-
-#     # Create a feature store object
-#     store = FeatureStore(config=repo_config)
-#     # Define entity for get_historical_features function for FeatureStore
-#     entity_sql = f"""
-#         SELECT
-#             phone_number,
-#             MAX(sub.date_context) AS event_timestamp
-#         FROM (SELECT * FROM {table_name}) AS sub
-#         WHERE date_context = '{os.getenv("DATE")}'
-#         GROUP BY phone_number
-#     """
-#     # Extract data from postgres table using feature service from Feast
-#     extracted_df = store.get_historical_features(
-#         entity_df=entity_sql, features=store.get_feature_service(feature_service)
-#     ).to_df()
-
-#     return extracted_df
+    return extracted_df
 
 def push_data_to_sql(
     db_engine: sqlalchemy.engine, data: pd.DataFrame, table_name: str

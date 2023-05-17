@@ -4,3 +4,6 @@ data/**
 # Python template
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+# Ignore everything in the following folders
+outputs/**

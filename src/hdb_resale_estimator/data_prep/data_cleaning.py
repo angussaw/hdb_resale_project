@@ -71,9 +71,11 @@ class DataCleaner:
             params (dict): Config params
         """
         resale_price_feature = params["resale_price"]
-        cpi_file_path = params["cpi_file_path"]
+        cpi_data = params["cpi_data"]
+        source = cpi_data["read_from_source"]
+        read_params = cpi_data["params"]
 
-        cpi_data = hdb_est.utils.read_data(data_path = cpi_file_path, concat=False)
+        cpi_data = hdb_est.utils.read_data(source=source, params=read_params)
         cpi_data[self.month_feature] = pd.to_datetime(cpi_data[self.month_feature])
         self.raw_hdb_data = pd.merge(self.raw_hdb_data, cpi_data, how="left", on=self.month_feature)
         self.raw_hdb_data[resale_price_feature] = (self.raw_hdb_data[resale_price_feature] / self.raw_hdb_data['cpi']) * 100

@@ -1,0 +1,69 @@
+files:
+  derived_features:
+    read_from_source: postgres
+    params:
+      table_name: "hdb_training_features"
+      columns:
+        - month
+        - year
+        - flat_type
+        - storey_range
+        - floor_area_sqm
+        - flat_model
+        - lease_age
+        - no_of_malls_within_2_km
+        - distance_to_nearest_malls
+        - no_of_schools_within_2_km
+        - distance_to_nearest_schools
+        - no_of_parks_within_2_km
+        - distance_to_nearest_parks
+        - no_of_MRT_stations_within_2_km
+        - distance_to_nearest_MRT_stations
+        - region
+        - resale_price
+
+label_column: resale_price
+
+process_train_data:
+  ordinal_encoding:
+    - storey_range
+
+  train_test_val_split:
+    train_size: 0.7
+    test_size: # Split between test and eval, leave blank to only have train, test
+    random_state: 42
+
+model_params:
+  chosen_model: "logreg" # logreg, ebm, xgboost
+
+  logreg:
+    model_name: "logreg"
+    one_hot_encode: True
+    scale_data: True
+    params:
+      random_state: 42 #Default: 42
+      penalty: 'l2' #Default: l2
+      C: 1.0 #Default: 1.0
+      l1_ratio: #Default: none
+      solver: "saga" #Default: lbfgs
+
+
+  ebm:
+    model_name: "ebm"
+    one_hot_encode: True
+    scale_data: False
+    params:
+      random_state: 42 #Default: 42
+      max_bins: 256 #Default: 256
+      max_interaction_bins: 32 #Default: 32
+      interactions: 10 #Default: 10
+      learning_rate: 0.01 #Default: 0.01
+      inner_bags: 0 #Default: 0
+      outer_bags: 8 #Default: 8
+      min_samples_leaf: 2 #Default: 2
+      max_leaves: 3 #Default: 3
+
+  xgboost:
+    model_name: "xgboost"
+    scale_data: False
+    params:

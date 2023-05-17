@@ -36,6 +36,7 @@ class FeatureEngineer:
            pd.DataFrame: Output dataframe containing
            each hdb transaction and their respective derived features
         """
+        hdb_data = hdb_data.head(50)
 
         logger.info("Mapping towns to regions...")
         hdb_data = self.map_regions(hdb_data, self.feature_engineering_params["map_regions"])
@@ -147,7 +148,7 @@ class FeatureEngineer:
                                amenity: str,
                                latitude_feature: str,
                                longitude_feature: str,
-                               amenities_file_path: str,
+                               amenities_data: dict,
                                radius: int,
                                period: bool) -> pd.DataFrame:
         """Function to get the following features for each flat:
@@ -158,14 +159,17 @@ class FeatureEngineer:
             hdb_data (pd.DataFrame): Dataframe containing each hdb transaction
             amenity (str): type of amenity (eg parks, schools, malls)
             coordinates_feature(str): name of coordinates feature
-            amenities_file_path (str): file path containing the coordinates of each amenity location
+            amenities_data (dict): params to read dataframe containing the coordinates of each amenity location
             radius (int): radius around the flat
             period (bool): whether to take into account the opening date of the amenity
 
         Returns:
             pd.DataFrame: Dataframe containing the amenity-specific features 
         """
-        amenity_details = hdb_est.utils.read_data(data_path = amenities_file_path, concat=False)
+        source = amenities_data["read_from_source"]
+        read_params = amenities_data["params"]
+
+        amenity_details = hdb_est.utils.read_data(source = source, params=read_params)
         if period:
             amenity_details = amenity_details.rename(columns={"Opening year": "YEAR", "Opening month": "MONTH"})
             amenity_details[self.year_month_feature] = pd.to_datetime(amenity_details[['YEAR', 'MONTH']].assign(DAY=1))
