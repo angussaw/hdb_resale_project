@@ -34,19 +34,35 @@ process_train_data:
     random_state: 42
 
 model_params:
-  chosen_model: "logreg" # logreg, ebm, xgboost
+  chosen_model: "ebm" # ridge, lasso, ebm, randforest, xgboost
 
-  logreg:
-    model_name: "logreg"
+  ridge:
+    model_name: "ridge"
     one_hot_encode: True
     scale_data: True
     params:
       random_state: 42 #Default: 42
-      penalty: 'l2' #Default: l2
-      C: 1.0 #Default: 1.0
-      l1_ratio: #Default: none
-      solver: "saga" #Default: lbfgs
+      solver: auto #Default: auto
+      alpha: 1.0 #Default:1.0
 
+  lasso:
+    model_name: "lasso"
+    one_hot_encode: True
+    scale_data: True
+    params:
+      random_state: 42 #Default: 42
+      alpha: 1.0 #Default:1.0
+
+  randforest:
+    model_name: "randforest"
+    one_hot_encode: True
+    scale_data: False
+    params:
+      random_state: 42
+      n_estimators: 100 #Default: 100
+      max_depth: 10
+      min_samples_leaf: 1 #Default: 1
+      min_samples_split: 2 #Default: 2
 
   ebm:
     model_name: "ebm"
@@ -65,5 +81,21 @@ model_params:
 
   xgboost:
     model_name: "xgboost"
+    one_hot_encode: True
     scale_data: False
     params:
+
+mlflow:
+  artifact_name: 'testing'
+  experiment_name: "testing"
+  description: 'testing'
+  model_name: testing.joblib
+  tags:
+    model-architecture: "testing"
+
+evaluator:
+  rounding_last_n: 5
+  feature_importance_top_n: 5
+  no_of_cv_folds: 5 # Leave blank to use train-test or train-val-test split
+
+optimisation_metric: "test_mean_squared_error" # metric for optimisation

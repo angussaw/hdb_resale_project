@@ -7,9 +7,9 @@ import hdb_resale_estimator as cscoreclf
 
 from interpret.glassbox import ExplainableBoostingRegressor
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import Ridge, Lasso
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, StandardScaler
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
 
 logger = logging.getLogger(__name__)
@@ -144,6 +144,7 @@ class Builder(ABC):
                 columns=encoder.get_feature_names_out(table_to_encode.columns),
                 index=table_to_encode.index,
             )
+            ohc_table.columns = [column.rstrip() for column in ohc_table.columns]
             self.objects["one_hot_encoder"] = {
                 "columns": existing_columns,
                 "encoder": encoder,
@@ -237,11 +238,17 @@ class ClassicalModelBuilder(Builder):
             ClassicalModelBuilder: SklearnBuilder object with model params set
         """
 
-        if model_name == "logreg":
-            self.model = LogisticRegression().set_params(**model_params)
+        if model_name == "ridge":
+            self.model = Ridge().set_params(**model_params)
+
+        elif model_name == "lasso":
+            self.model = Lasso().set_params(**model_params)
 
         elif model_name == "ebm":
             self.model = ExplainableBoostingRegressor().set_params(**model_params)
+
+        elif model_name == "randforest":
+            self.model = RandomForestRegressor().set_params(**model_params)
 
         elif model_name == "xgboost":
             self.model = XGBRegressor().set_params(**model_params)

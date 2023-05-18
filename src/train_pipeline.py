@@ -26,21 +26,13 @@ def main(train_config):
             derived_hdb_features = hdb_est.utils.read_data(source=read_from_source, params=read_params)
 
             logger.info("Initialising model training...")
-            features = hdb_est.modeling.training.train_pipeline(
+            metric, model_uri = hdb_est.modeling.training.train_pipeline(
                 train_config, derived_hdb_features
             )
-            features.to_csv("data/preprocessed/for_training/features.csv")
             logger.info("Model training completed!!!")
+            print(model_uri)
 
-
-    #         logger.info("Initialising model training...")
-    #         metric, model_uri = hdb_est.modeling.training.train_pipeline(
-    #             train_config, derived_hdb_features
-    #         )
-    #         logger.info("Model training completed!!!")
-    #         print(model_uri)
-
-    # return metric
+    return metric
 
 
 if __name__ == "__main__":

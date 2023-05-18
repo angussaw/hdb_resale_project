@@ -23,6 +23,7 @@ import json
 import requests
 from geopy.distance import geodesic
 import sqlalchemy
+import mlflow
 
 logger = logging.getLogger(__name__)
 
@@ -68,37 +69,37 @@ def setup_logging(
         logger.info("Logging config file is not found. Basic config is being used.")
 
 
-# def init_mlflow(mlflow_config: dict) -> Tuple[str, str]:
-#     """initialises mlflow parameters - tracking URI and experiment name.
+def init_mlflow(mlflow_config: dict) -> Tuple[str, str]:
+    """initialises mlflow parameters - tracking URI and experiment name.
 
-#     Takes in a configuration dictionary and sets the tracking URI
-#     and MLFlow experiment name. Returns the artifact name and the
-#     mlflow run description.
+    Takes in a configuration dictionary and sets the tracking URI
+    and MLFlow experiment name. Returns the artifact name and the
+    mlflow run description.
 
-#     Args:
-#         mlflow_config (dict): A dictionary containing the configurations
-#             of the mlflow run.
+    Args:
+        mlflow_config (dict): A dictionary containing the configurations
+            of the mlflow run.
 
-#     Returns:
-#         artifact_name (str): Name of the artifact which the resultant
-#             trained model will be saved as. If none specified, the file
-#             will be saved as a hashed datetime.
+    Returns:
+        artifact_name (str): Name of the artifact which the resultant
+            trained model will be saved as. If none specified, the file
+            will be saved as a hashed datetime.
 
-#         description (str): Description of the mlflow run, if any.
-#     """
+        description (str): Description of the mlflow run, if any.
+    """
 
-#     logger.info("Logging to MLFlow at %s", os.getenv("MLFLOW_TRACKING_URI"))
+    logger.info("Logging to MLFlow at %s", os.getenv("MLFLOW_TRACKING_URI"))
 
-#     mlflow_experiment_name = mlflow_config["experiment_name"]
-#     mlflow.set_experiment(mlflow_experiment_name)
-#     logger.info("Logging to MLFlow Experiment: %s", mlflow_experiment_name)
+    mlflow_experiment_name = mlflow_config["experiment_name"]
+    mlflow.set_experiment(mlflow_experiment_name)
+    logger.info("Logging to MLFlow Experiment: %s", mlflow_experiment_name)
 
-#     if mlflow_config["artifact_name"]:
-#         artifact_name = mlflow_config["artifact_name"]
-#     else:
-#         hashlib.sha1().update(str(time.time()).encode("utf-8"))
-#         artifact_name = hashlib.sha1().hexdigest()[:15]
-#     return artifact_name, mlflow_config.get("description", "")
+    if mlflow_config["artifact_name"]:
+        artifact_name = mlflow_config["artifact_name"]
+    else:
+        hashlib.sha1().update(str(time.time()).encode("utf-8"))
+        artifact_name = hashlib.sha1().hexdigest()[:15]
+    return artifact_name, mlflow_config.get("description", "")
 
 
 def check_envvars() -> bool:
@@ -109,8 +110,6 @@ def check_envvars() -> bool:
     return_status = True
 
     for envvar in [
-        "MLFLOW_TRACKING_USERNAME",
-        "MLFLOW_TRACKING_PASSWORD",
         "MLFLOW_TRACKING_URI",
     ]:
         try:

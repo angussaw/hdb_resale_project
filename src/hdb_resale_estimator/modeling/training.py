@@ -97,4 +97,61 @@ def train_pipeline(
         except:
             pass
     
-    return pd.DataFrame(datasets["train"]["X"])
+    # Training model
+    logger.info(f"Training {chosen_model} Model...")
+    builder.model.fit(datasets["train"]["X"], datasets["train"]["y"])
+
+    # Evaluate model
+    logger.info("Evaluating %s Model...", chosen_model)
+    evaluator = hdb_est.modeling.evaluation.Evaluator(
+        builder=builder,
+        params=config["evaluator"],
+        chosen_model=chosen_model,
+    )
+    metrics, visualizations_save_dir = evaluator.evaluate_model(
+        datasets=datasets
+    )
+    logger.info("Model performance: %s", metrics)
+
+    # Initialise mlflow for logging
+    logger.info("Initialising MLFlow...")
+    artifact_name, description_str = hdb_est.utils.init_mlflow(config["mlflow"])
+
+    with mlflow.start_run(
+        run_name="Model Training", description=description_str
+    ) as run:
+        logger.info("Starting MLFlow Run...")
+        if config["mlflow"]["tags"]:
+            mlflow.set_tags(config["mlflow"]["tags"])
+
+        logger.info("Logging model params...")
+        mlflow.log_params(config["model_params"][chosen_model]["params"])
+
+        # Log model artifacts
+        save_dir = hdb_est.utils.generate_named_tmp_dir(dir_name="model")
+        model_file_name = config["mlflow"]["model_name"]
+        joblib.dump(builder, f"{save_dir}/{model_file_name}")
+        mlflow.log_artifact(save_dir)
+
+        model_uri = f"runs:/{run.info.run_id}/model/{model_file_name}"
+        logger.info("Model logged to %s", model_uri)
+
+        logger.info("Logging model performance metrics...")
+        mlflow.log_metrics(metrics)
+
+        logger.info("Logging model visualizations...")
+        mlflow.log_artifact(visualizations_save_dir)
+        logger.info(
+            "Model performance visualisation available at runs:/%s/graph",
+            run.info.run_id,
+        )
+        features_dict = {}
+        features_dict["features"] = list(features.columns)
+
+        mlflow.log_dict(features_dict, "features.json")
+
+        mlflow.end_run()
+
+    logger.info("Model training has completed!!!")
+
+    return metrics[config["optimisation_metric"]], model_uri
