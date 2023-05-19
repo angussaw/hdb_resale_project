@@ -4,6 +4,7 @@ import logging
 from typing import Tuple
 
 import matplotlib.pyplot as plt
+import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from sklearn.model_selection import cross_validate
@@ -81,6 +82,11 @@ class Evaluator:
                 )
                 metrics.update(dataset_metrics)
 
+                self._save_actual_predicted_scatterplot(dataset_type=dataset_type,
+                                            actual_values=target,
+                                            predicted_values=predicted_values,
+                                            save_dir=visualizations_save_dir)
+
         # Generate cross validation scores
         if self.no_of_cv_folds:
             metrics.update(
@@ -90,15 +96,10 @@ class Evaluator:
                 )
             )
 
-        self._save_actual_predicted_scatterplot(dataset_type=dataset_type,
-                                                actual_values=target,
-                                                predicted_values=predicted_values,
-                                                save_dir=visualizations_save_dir)
-
         if self.chosen_model == "ebm":
             self._save_ebm_feature_importances(save_dir=visualizations_save_dir)
 
-        elif self.chosen_model in ["ridge", "lasso", "randforest"]:
+        elif self.chosen_model == "randforest":
 
             self._save_permutation_feature_importances(
                 train_X=datasets["train"]["X"],
@@ -106,13 +107,8 @@ class Evaluator:
                 save_dir=visualizations_save_dir
             )
 
-            if self.chosen_model in ["ridge", "lasso"]:
-                self._save_linreg_feature_importances(train_X=datasets["train"]["X"],
-                                                      save_dir=visualizations_save_dir)
-
-            elif self.chosen_model in ["randforest"]:
-                self._save_tree_feature_importances(train_X=datasets["train"]["X"],
-                                                      save_dir=visualizations_save_dir)
+            self._save_tree_feature_importances(train_X=datasets["train"]["X"],
+                                                    save_dir=visualizations_save_dir)
 
         else:
             logger.info("%s not in list to show feature importance", self.chosen_model)
@@ -147,8 +143,8 @@ class Evaluator:
             rounding_last_n = 5
 
         metrics = {
-            f"{dataset_type}_mean_squared_error": round(
-                mean_squared_error(actual_values, predicted_values), rounding_last_n
+            f"{dataset_type}_root_mean_squared_error": round(
+                np.sqrt(mean_squared_error(actual_values, predicted_values)), rounding_last_n
             ),
             f"{dataset_type}_mean_absolute_error": round(
                 mean_absolute_error(actual_values, predicted_values), rounding_last_n
@@ -303,58 +299,6 @@ class Evaluator:
 
         return file_save_path
 
-    def _save_linreg_feature_importances(
-        self, train_X: pd.DataFrame, save_dir: str
-    ) -> str:
-        """
-        Generates a horizontal barplot of the linear regression coefficients and saves the visualisation to filepath
-
-        Args:
-            train_X (pd.DataFrame): Train set features
-            save_dir (str): Directory that the evaluation visualizations are saved in
-
-        Returns:
-            str: File save path of the visualization
-        """
-        feature_impt = pd.DataFrame()
-        feature_impt["Feature"] = list(train_X.columns)
-        feature_impt["Coefficients"] = self.builder.model.coef_
-        if self.top_n_features:
-            top_n_pos_feature_impt = (
-                feature_impt[feature_impt["Coefficients"] > 0]
-                .sort_values(by=["Coefficients"], ascending=False)
-                .head(self.top_n_features)
-            )
-            top_n_neg_feature_impt = (
-                feature_impt[feature_impt["Coefficients"] < 0]
-                .sort_values(by=["Coefficients"], ascending=True)
-                .head(self.top_n_features)
-            )
-            feature_impt = pd.concat(
-                [top_n_pos_feature_impt, top_n_neg_feature_impt]
-            ).sort_values(by=["Coefficients"], ascending=False)
-        else:
-            feature_impt = feature_impt.sort_values(
-                by=["Coefficients"], ascending=False
-            )
-
-        plt.figure(figsize=(15, 10))
-        plt.barh(
-            y=feature_impt["Feature"],
-            width=feature_impt["Coefficients"],
-        )
-        plt.xlabel("Coefficients")
-        plot_name = "Overall_Linreg_Feature_Importances"
-        if self.top_n_features:
-            plot_name = f"{plot_name}_top_{self.top_n_features}"
-        plt.title(plot_name)
-
-        file_save_path = self._save_visualization(
-            plot_name=plot_name, save_dir=save_dir
-        )
-
-        return file_save_path
-
     def _save_tree_feature_importances(self, train_X: pd.DataFrame, save_dir: str):
         """_summary_
 
@@ -431,10 +375,10 @@ class Evaluator:
             cv=self.no_of_cv_folds,
         )
         metrics = {
-            "cv_mean_neg_mean_squared_error": result["test_neg_mean_squared_error"].mean(),
-            "cv_std_neg_mean_squared_error": result["test_neg_mean_squared_error"].std(),
-            "cv_mean_neg_mean_absolute_error": result["test_neg_mean_absolute_error"].mean(),
-            "cv_std_neg_mean_absolute_error": result["test_neg_mean_absolute_error"].std(),
+            "cv_mean_root_mean_squared_error": np.mean([np.sqrt(-mse) for mse in result["test_neg_mean_squared_error"]]),
+            "cv_std_root_mean_squared_error": np.std([np.sqrt(-mse) for mse in result["test_neg_mean_squared_error"]]),
+            "cv_mean_mean_absolute_error": -result["test_neg_mean_absolute_error"].mean(),
+            "cv_std_mean_absolute_error": result["test_neg_mean_absolute_error"].std(),
             "cv_mean_r2_score": result["test_r2"].mean(),
             "cv_std_r2_score": result["test_r2"].std(),
         }

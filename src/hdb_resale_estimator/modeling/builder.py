@@ -238,13 +238,7 @@ class ClassicalModelBuilder(Builder):
             ClassicalModelBuilder: SklearnBuilder object with model params set
         """
 
-        if model_name == "ridge":
-            self.model = Ridge().set_params(**model_params)
-
-        elif model_name == "lasso":
-            self.model = Lasso().set_params(**model_params)
-
-        elif model_name == "ebm":
+        if model_name == "ebm":
             self.model = ExplainableBoostingRegressor().set_params(**model_params)
 
         elif model_name == "randforest":
