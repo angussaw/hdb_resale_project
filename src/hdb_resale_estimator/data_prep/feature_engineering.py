@@ -22,12 +22,13 @@ class FeatureEngineer:
     these new features
     """
 
-    def __init__(self, params: dict, inference_mode: bool=False)-> None:
+    def __init__(self, params: dict, inference_mode: bool=False, directory=None)-> None:
         self.month_feature = params["month"]
         self.feature_engineering_params = params["feature_engineering"]
         self.year_feature = self.feature_engineering_params["year"]
         self.year_month_feature = self.feature_engineering_params["year_month"]
         self.inference_mode = inference_mode
+        self.directory = directory
 
     def engineer_features(self, hdb_data: pd.DataFrame) -> pd.DataFrame:
 
@@ -60,7 +61,8 @@ class FeatureEngineer:
         derived_features_hdb = pd.concat([hdb_data]+
                                           amenity_features_list, axis = 1)
         
-        derived_features_hdb["date_context"] = datetime.strptime(os.getenv("DATE"), "%Y-%m-%d")
+        if not self.inference_mode:
+            derived_features_hdb["date_context"] = datetime.strptime(os.getenv("DATE"), "%Y-%m-%d")
 
         return derived_features_hdb
     
@@ -174,6 +176,9 @@ class FeatureEngineer:
         """
         source = amenities_data["read_from_source"]
         read_params = amenities_data["params"]
+        if self.directory:
+            data_path = read_params["data_path"]
+            read_params["data_path"] = f"{self.directory}/{data_path}"
         amenity_details = hdb_est.utils.read_data(source = source, params=read_params)
         if period:
             amenity_details = amenity_details.rename(columns={"Opening year": "YEAR", "Opening month": "MONTH"})
@@ -186,6 +191,11 @@ class FeatureEngineer:
         no_of_amenities_within_radius = f"no_of_{amenity}_within_{radius}_km"
         distance_to_nearest_amenity = f"distance_to_nearest_{amenity}"
 
+        if not self.inference_mode:
+            columns = [no_of_amenities_within_radius, distance_to_nearest_amenity]
+        else:
+            columns = [no_of_amenities_within_radius, distance_to_nearest_amenity, "nearest_amenity_coordinates", "nearest_amenity_name"]
+
         amenity_features = pd.DataFrame(hdb_coordinates.progress_apply(lambda coordinates: hdb_est.utils.find_nearest_amenities(coordinates,
                                                                                                                                amenity_details = amenity_details,
                                                                                                                                radius = radius,
@@ -195,8 +205,7 @@ class FeatureEngineer:
                                                                                                                                year_month_feature = self.year_month_feature,
                                                                                                                                return_nearest_amenity = self.inference_mode),
                                                                                                                                axis = 1).tolist(),
-                                                                                                                               columns=[no_of_amenities_within_radius,
-                                                                                                                                        distance_to_nearest_amenity])
+                                                                                                                               columns=columns)
         
         return amenity_features
 

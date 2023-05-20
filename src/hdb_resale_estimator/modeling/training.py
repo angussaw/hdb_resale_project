@@ -49,6 +49,7 @@ def train_pipeline(
         config["model_params"][chosen_model]["model_name"],
         config["model_params"][chosen_model]["params"],
     )
+    builder.objects["features"] = list(features.columns)
 
     logger.info("Processing training derived features...")
     if config["process_train_data"]["ordinal_encoding"]:
