@@ -33,7 +33,7 @@ class DataCleaner:
         self.remove_flat_types(self.data_cleaning_params["remove_flat_types"])
         self.replace_flat_models(self.data_cleaning_params["replace_flat_models"])
         self.change_dtype()
-        if self.inference_mode:
+        if not self.inference_mode:
             self.adjust_resale(self.data_cleaning_params["adjust_resale"])
 
         return self.raw_hdb_data

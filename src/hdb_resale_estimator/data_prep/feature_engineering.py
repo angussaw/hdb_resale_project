@@ -174,7 +174,6 @@ class FeatureEngineer:
         """
         source = amenities_data["read_from_source"]
         read_params = amenities_data["params"]
-
         amenity_details = hdb_est.utils.read_data(source = source, params=read_params)
         if period:
             amenity_details = amenity_details.rename(columns={"Opening year": "YEAR", "Opening month": "MONTH"})

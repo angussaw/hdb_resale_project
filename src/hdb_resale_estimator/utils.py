@@ -24,6 +24,7 @@ import requests
 from geopy.distance import geodesic
 import sqlalchemy
 import mlflow
+import joblib
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,8 @@ def find_nearest_amenities(flat_transaction,
                            period: bool,
                            latitude_feature: str,
                            longitude_feature: str,
-                           year_month_feature: str) -> tuple:
+                           year_month_feature: str,
+                           return_nearest_amenity: bool = False) -> tuple:
     """Function to find the number of amenities within radius
     of a flat, and also the flat's distance to the nearest amenity
 
@@ -247,10 +249,13 @@ def find_nearest_amenities(flat_transaction,
         period (bool): whether to take into account the opening date of the amenity
         coordinates_feature(str): name of coordinates feature
         year_month_feature (str): name of year_month feature
+        return_nearest_amenity (bool, optional): whether to return the location of the nearest amenity. 
+                                                 Defaults to False.
 
     Returns:
         tuple: nearest amenities information for the flat
     """
+
     flat_coordinates = (flat_transaction[latitude_feature], flat_transaction[longitude_feature])
     transaction_year_month = flat_transaction[year_month_feature]
     no_of_amenities_within_radius = 0
@@ -268,9 +273,17 @@ def find_nearest_amenities(flat_transaction,
             if distance <= radius:   # compute number of amenities in 2km radius
                 no_of_amenities_within_radius += 1
 
+            if return_nearest_amenity:
+                if distance < distance_to_nearest_amenity:
+                    nearest_amenity_coordinates = amenity_coordinates
+                    nearest_amenity_name = eachloc.upper()
+
             distance_to_nearest_amenity = min(distance, distance_to_nearest_amenity)
-        
-    return no_of_amenities_within_radius, distance_to_nearest_amenity
+
+    if return_nearest_amenity:
+        return no_of_amenities_within_radius, distance_to_nearest_amenity, nearest_amenity_coordinates, nearest_amenity_name
+    else:
+        return no_of_amenities_within_radius, distance_to_nearest_amenity
 
 
 def check_postgres_env() -> None:
@@ -392,3 +405,35 @@ def check_duplicate_date_input(
         raise ValueError(
             f"{reference_column} {reference_column_value} already exist in {table_name}"
         )
+
+
+def retrieve_builder(run_id: str,
+                    model_uri: str,
+                    model_name: str,
+                    destination_path: str ="./models"):
+    """
+    Function to retrieve a trained model from MLFLow for inference
+
+    Args:
+        run_id (str): MLFlow run id
+        model_uri (str): MLFlow model uri
+        model_name (str): MLFlow model name
+        destination_path (str): Path to save model to
+
+    Returns:
+        Builder object with trained model
+    """
+
+    artifact_uri = f'mlflow-artifacts:/{run_id}/{model_uri}/artifacts/{model_name}'
+    try:
+        mlflow.artifacts.download_artifacts(
+            artifact_uri=artifact_uri, dst_path=destination_path
+        )
+    except Exception as mlflow_error:
+        raise mlflow_error
+    
+    model_file = os.path.split(artifact_uri)[1]
+    builder = joblib.load(f'{destination_path}/{model_file}')
+    logger.info("Artifact download successful")
+
+    return builder
