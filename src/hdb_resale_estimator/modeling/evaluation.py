@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import shap
 from sklearn.model_selection import cross_validate
 from sklearn.base import clone
 from sklearn.metrics import (
@@ -42,6 +43,7 @@ class Evaluator:
         self.chosen_model = chosen_model
         self.rounding_last_n = params["rounding_last_n"]
         self.no_of_cv_folds = params["no_of_cv_folds"]
+        self.shap_explainer = params["shap_explainer"]
 
     def evaluate_model(
         self,
@@ -109,6 +111,11 @@ class Evaluator:
 
             self._save_tree_feature_importances(train_X=datasets["train"]["X"],
                                                     save_dir=visualizations_save_dir)
+        
+        elif (self.chosen_model == "xgboost") & (self.shap_explainer):
+
+            self._generate_shap_plots(train_X=datasets["train"]["X"],
+                                        save_dir=visualizations_save_dir)
 
         else:
             logger.info("%s not in list to show feature importance", self.chosen_model)
@@ -383,3 +390,33 @@ class Evaluator:
             "cv_std_r2_score": result["test_r2"].std(),
         }
         return metrics
+    
+    def _generate_shap_plots(self, train_X: pd.DataFrame, save_dir: str):
+        """_summary_
+
+        Args:
+            train_X (pd.DataFrame): _description_
+            save_dir (str): _description_
+        """
+
+        explainer = shap.Explainer(self.builder.model.predict, train_X)
+        self.builder.objects["explainer"] = explainer
+
+        shap_values = explainer(train_X)
+
+        shap.summary_plot(shap_values.values, features=train_X, feature_names=list(train_X.columns), show=False)
+        _, h = plt.gcf().get_size_inches()
+        plt.gcf().set_size_inches(h*3, h)
+        ax = plt.gca()
+        ax.set_xlim(-200000, 200000) 
+        plot_name = f"Summary plot of shap values"
+        plt.title(plot_name)
+
+        file_save_path = self._save_visualization(
+            plot_name=plot_name, save_dir=save_dir
+        )
+
+        return file_save_path
+
+
+
