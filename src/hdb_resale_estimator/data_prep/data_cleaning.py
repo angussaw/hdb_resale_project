@@ -12,25 +12,29 @@ class DataCleaner:
     """DataCleaner class will be used to clean, impute and filter the hdb data"""
 
     def __init__(
-        self, raw_hdb_data: pd.DataFrame, params: dict
+        self, raw_hdb_data: pd.DataFrame, params: dict, inference_mode: bool=False
     ) -> None:
         
         self.raw_hdb_data = raw_hdb_data
         self.month_feature = params["month"]
         self.data_cleaning_params = params["data_cleaning"]
+        self.inference_mode = inference_mode
 
     def clean_data(self) -> pd.DataFrame:
+
         """Takes in raw hdb data, performs cleaning and filtering
         of data.
 
         Returns:
             cleaned_df (pd.DataFrame): cleaned and filtered hdb data
         """
+
         
         self.remove_flat_types(self.data_cleaning_params["remove_flat_types"])
         self.replace_flat_models(self.data_cleaning_params["replace_flat_models"])
         self.change_dtype()
-        self.adjust_resale(self.data_cleaning_params["adjust_resale"])
+        if self.inference_mode:
+            self.adjust_resale(self.data_cleaning_params["adjust_resale"])
 
         return self.raw_hdb_data
 

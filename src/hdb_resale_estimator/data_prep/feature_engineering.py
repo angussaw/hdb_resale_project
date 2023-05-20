@@ -22,20 +22,26 @@ class FeatureEngineer:
     these new features
     """
 
-    def __init__(self, params: dict)-> None:
+    def __init__(self, params: dict, inference_mode: bool=False)-> None:
         self.month_feature = params["month"]
         self.feature_engineering_params = params["feature_engineering"]
         self.year_feature = self.feature_engineering_params["year"]
         self.year_month_feature = self.feature_engineering_params["year_month"]
+        self.inference_mode = inference_mode
 
     def engineer_features(self, hdb_data: pd.DataFrame) -> pd.DataFrame:
+
         """
         Engineer features from cleaned hdb data
+
+        Args:
+            hdb_data (pd.DataFrame): Dataframe containing raw hdb features
 
         Returns:
            pd.DataFrame: Output dataframe containing
            each hdb transaction and their respective derived features
         """
+
         hdb_data = hdb_data.head(50)
 
         logger.info("Mapping towns to regions...")
@@ -187,7 +193,8 @@ class FeatureEngineer:
                                                                                                                                period = period,
                                                                                                                                latitude_feature = latitude_feature,
                                                                                                                                longitude_feature = longitude_feature,
-                                                                                                                               year_month_feature = self.year_month_feature),
+                                                                                                                               year_month_feature = self.year_month_feature,
+                                                                                                                               return_nearest_amenity = self.inference_mode),
                                                                                                                                axis = 1).tolist(),
                                                                                                                                columns=[no_of_amenities_within_radius,
                                                                                                                                         distance_to_nearest_amenity])
