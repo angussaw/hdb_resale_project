@@ -17,7 +17,7 @@ def main(train_config):
         with initialize(version_base=None, config_path="../conf"):
             logger.info("Starting train pipeline...")
             logger.info(
-                "Retrieving training config and training derived data config..."
+                "Retrieving training data..."
             )
 
             read_from_source = train_config["files"]["derived_features"]["read_from_source"]
@@ -30,7 +30,6 @@ def main(train_config):
                 train_config, derived_hdb_features
             )
             logger.info("Model training completed!!!")
-            print(model_uri)
 
     return metric
 

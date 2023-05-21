@@ -1,7 +1,6 @@
 """Module containing the function to train a model
 """
 import logging
-import sys
 import joblib
 import mlflow
 from omegaconf import DictConfig
@@ -99,7 +98,7 @@ def train_pipeline(
             pass
     
     # Training model
-    logger.info(f"Training {chosen_model} Model...")
+    logger.info(f"Training {chosen_model} model...")
     builder.model.fit(datasets["train"]["X"], datasets["train"]["y"])
 
     # Evaluate model

@@ -3,7 +3,6 @@ and prepare the data for training or inference
 """
 from abc import ABC, abstractmethod
 import logging
-import hdb_resale_estimator as cscoreclf
 
 from interpret.glassbox import ExplainableBoostingRegressor
 import pandas as pd

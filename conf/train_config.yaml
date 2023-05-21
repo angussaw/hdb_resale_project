@@ -35,7 +35,7 @@ hydra:
     direction: ["minimize"]
     study_name: "random_seed_tuning"
     storage: null
-    n_trials: 100
+    n_trials: 50
     n_jobs: 1
 
     params:
@@ -43,12 +43,12 @@ hydra:
       # model_params.randforest.params.max_depth: range(5,20,1)
       # model_params.randforest.params.min_samples_leaf: range(1,10,1)
 
-      model_params.ebm.params.max_bins: range(150,250,10)
-      model_params.ebm.params.max_interaction_bins: range(5,32,1)
-      model_params.ebm.params.interactions: range(1,10,1)
-      model_params.ebm.params.learning_rate: range(0.001,0.02,0.01)
-      model_params.ebm.params.min_samples_leaf: range(2,10,1)
-      model_params.ebm.params.max_leaves: range(1,5,1)
+      # model_params.ebm.params.max_bins: range(150,250,10)
+      # model_params.ebm.params.max_interaction_bins: range(5,32,1)
+      # model_params.ebm.params.interactions: range(1,10,1)
+      # model_params.ebm.params.learning_rate: range(0.001,0.02,0.01)
+      # model_params.ebm.params.min_samples_leaf: range(2,10,1)
+      # model_params.ebm.params.max_leaves: range(1,5,1)
 
       # model_params.xgboost.params.max_depth: range(5,15,1)
       # model_params.xgboost.params.n_estimators: range(100,500,10)
@@ -64,7 +64,7 @@ process_train_data:
     random_state: 42
 
 model_params:
-  chosen_model: "ebm" # randforest, ebm, xgboost
+  chosen_model: "xgboost" # randforest, ebm, xgboost
 
   randforest:
     model_name: "randforest"
@@ -96,22 +96,23 @@ model_params:
     one_hot_encode: True
     scale_data: False
     params:
-      max_depth: 6 #Default: 6
-      n_estimators: 100 #Default: 100
-      learning_rate: 0.3 #Default: 0.3
+      max_depth: 9 #Default: 6
+      n_estimators: 420 #Default: 100
+      learning_rate: 0.1 #Default: 0.3
+      random_state: 42
 
 mlflow:
-  artifact_name: 'ebm'
-  experiment_name: "ebm hyperparameter tuning v1"
-  description: 'hyperparameter tuning'
-  model_name: ebm_hpt_v1.joblib
+  artifact_name: 'xgboost'
+  experiment_name: "best models v1"
+  description: 'Best models'
+  model_name: best_xgboost_v1.joblib
   tags:
-    model-architecture: "ebm"
+    model-architecture: "xgboost"
 
 evaluator:
   rounding_last_n: 5
   feature_importance_top_n: 5
   no_of_cv_folds: # Leave blank to use train-test or train-val-test split
-  shap_explainer: False
+  shap_explainer: True
 
 optimisation_metric: "val_root_mean_squared_error" # metric for optimisation
