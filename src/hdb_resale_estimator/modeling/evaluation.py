@@ -103,15 +103,13 @@ class Evaluator:
 
         elif self.chosen_model == "randforest":
 
-            self._save_permutation_feature_importances(
-                train_X=datasets["train"]["X"],
-                train_y=datasets["train"]["y"],
-                save_dir=visualizations_save_dir
-            )
-
             self._save_tree_feature_importances(train_X=datasets["train"]["X"],
-                                                    save_dir=visualizations_save_dir)
-        
+                                                save_dir=visualizations_save_dir)
+
+            if self.shap_explainer:
+                self._generate_shap_plots(train_X=datasets["train"]["X"],
+                                          save_dir=visualizations_save_dir)
+
         elif (self.chosen_model == "xgboost") & (self.shap_explainer):
 
             self._generate_shap_plots(train_X=datasets["train"]["X"],
@@ -257,12 +255,14 @@ class Evaluator:
             permu_impt_df_dict[metric] = metric_permu_impt_df
 
         plot_name = "Permutation_Feature_Importances"
-        fig, axes = plt.subplots(1,3, figsize=(24,6), sharex=False)
+        fig, axes = plt.subplots(1,3, figsize=(18,6), sharex=False)
         fig.suptitle(plot_name)
 
         for i in range(len(scoring)):
             axes[i].barh("Feature", width="Importance", data=permu_impt_df_dict[scoring[i]])
             axes[i].set_title(scoring[i])
+
+        fig.tight_layout()
 
         file_save_path = self._save_visualization(
             plot_name=plot_name, save_dir=save_dir

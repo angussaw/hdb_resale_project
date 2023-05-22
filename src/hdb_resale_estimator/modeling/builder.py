@@ -4,6 +4,8 @@ and prepare the data for training or inference
 from abc import ABC, abstractmethod
 import logging
 
+import hdb_resale_estimator as hdb_est
+
 from interpret.glassbox import ExplainableBoostingRegressor
 import pandas as pd
 from sklearn.linear_model import Ridge, Lasso
@@ -31,9 +33,6 @@ class Builder(ABC):
         Returns:
             pd.DataFrame: DataFrame containing processed features ready for inference
         """
-        inference_data = inference_data[
-            inference_data.columns.difference(["phone_number", "event_timestamp"])
-        ]
 
         if "ordinal_encoder" in self.objects:
             columns = self.objects["ordinal_encoder"]["columns"]
@@ -143,7 +142,6 @@ class Builder(ABC):
                 columns=encoder.get_feature_names_out(table_to_encode.columns),
                 index=table_to_encode.index,
             )
-            ohc_table.columns = [column.rstrip() for column in ohc_table.columns]
             self.objects["one_hot_encoder"] = {
                 "columns": existing_columns,
                 "encoder": encoder,

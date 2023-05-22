@@ -343,6 +343,9 @@ def extract_data_from_psql(table_name: str, columns:list) -> pd.DataFrame:
     with db_engine.begin() as conn:
         extracted_df = pd.read_sql(sql_query, conn)
 
+    df_obj = extracted_df.select_dtypes("object")
+    extracted_df[df_obj.columns] = df_obj.astype(str).apply(lambda x: x.str.rstrip())
+
     return extracted_df
 
 def push_data_to_sql(

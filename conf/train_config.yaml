@@ -39,7 +39,7 @@ hydra:
     n_jobs: 1
 
     params:
-      # model_params.randforest.params.n_estimators: range(100,500,10)
+      # model_params.randforest.params.n_estimators: range(100,300,5)
       # model_params.randforest.params.max_depth: range(5,20,1)
       # model_params.randforest.params.min_samples_leaf: range(1,10,1)
 
@@ -64,7 +64,7 @@ process_train_data:
     random_state: 42
 
 model_params:
-  chosen_model: "xgboost" # randforest, ebm, xgboost
+  chosen_model: "ebm" # randforest, ebm, xgboost
 
   randforest:
     model_name: "randforest"
@@ -72,8 +72,8 @@ model_params:
     scale_data: False
     params:
       random_state: 42
-      n_estimators: 100 #Default: 100
-      max_depth: 10
+      n_estimators: 205 #Default: 100
+      max_depth: 20
       min_samples_leaf: 1 #Default: 1
 
   ebm:
@@ -102,17 +102,17 @@ model_params:
       random_state: 42
 
 mlflow:
-  artifact_name: 'xgboost'
+  artifact_name: 'ebm'
   experiment_name: "best models v1"
-  description: 'Best models'
-  model_name: best_xgboost_v1.joblib
+  description: 'best models'
+  model_name: 'best_ebm_v1.joblib'
   tags:
-    model-architecture: "xgboost"
+    model-architecture: "ebm"
 
 evaluator:
   rounding_last_n: 5
-  feature_importance_top_n: 5
+  feature_importance_top_n: 10
   no_of_cv_folds: # Leave blank to use train-test or train-val-test split
-  shap_explainer: True
+  shap_explainer: False
 
 optimisation_metric: "val_root_mean_squared_error" # metric for optimisation
