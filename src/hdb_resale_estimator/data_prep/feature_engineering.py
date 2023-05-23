@@ -43,8 +43,6 @@ class FeatureEngineer:
            each hdb transaction and their respective derived features
         """
 
-        hdb_data = hdb_data.head(50)
-
         logger.info("Mapping towns to regions...")
         hdb_data = self.map_regions(hdb_data, self.feature_engineering_params["map_regions"])
 
@@ -194,7 +192,7 @@ class FeatureEngineer:
         if not self.inference_mode:
             columns = [no_of_amenities_within_radius, distance_to_nearest_amenity]
         else:
-            columns = [no_of_amenities_within_radius, distance_to_nearest_amenity, "nearest_amenity_coordinates", "nearest_amenity_name"]
+            columns = [no_of_amenities_within_radius, distance_to_nearest_amenity, f"nearest_{amenity}_coordinates", f"nearest_{amenity}_name"]
 
         amenity_features = pd.DataFrame(hdb_coordinates.progress_apply(lambda coordinates: hdb_est.utils.find_nearest_amenities(coordinates,
                                                                                                                                amenity_details = amenity_details,
