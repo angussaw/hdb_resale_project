@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 import logging
 import mlflow
 import os
@@ -6,6 +6,10 @@ import joblib
 import pandas as pd
 import glob
 import yaml
+import shap
+from fastapi.responses import ORJSONResponse
+import json
+import jsonpickle
 
 with open('conf/data_prep.yaml', 'r') as file:
     config = yaml.safe_load(file)
@@ -20,23 +24,14 @@ logger = logging.getLogger(__name__)
 mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
 model_uri = os.getenv("MODEL_URI")
 run_id =  os.getenv("RUN_ID")
-artifact_uri = f'mlflow-artifacts:/{run_id}/{model_uri}/artifacts/model'
-logger.info("Downloading artifacts from MLFlow model URI: %s...", model_uri)
-try:
-    mlflow.artifacts.download_artifacts(
-        artifact_uri=artifact_uri, dst_path="../models"
-    )
-except Exception as mlflow_error:
-    logger.exception("Failed to load model: %s", mlflow_error)
-    raise mlflow_error
-
-logger.info("Artifact download successful")
-
-model_path = glob.glob("../models/model/*.joblib")[0]
-builder = joblib.load(model_path)
+builder = hdb_est.utils.retrieve_builder(run_id=run_id, model_uri=model_uri)
 
 PRED_MODEL = builder.model
 PRED_MODEL_FEATURES = builder.objects["features"] # before encoding
+if "explainer" in builder.objects.keys():
+    PRED_MODEL_EXPLAINER = builder.objects["explainer"]
+else:
+    PRED_MODEL_EXPLAINER = None
 
 
 app = FastAPI()
@@ -83,7 +78,22 @@ def prepare_raw_data(input_data: dict):
     return derived_input_data.iloc[0].to_dict()
 
 
+@app.post("/explain")
+def generate_shap_values(hdb_flat_dict: dict):
+    """_summary_
 
+    Args:
+        hdb_flat_dict (dict): _description_
+    """
 
+    hdb_flat_df = pd.DataFrame([hdb_flat_dict])[PRED_MODEL_FEATURES]
 
+    processed_hdb_flat_df = builder.process_inference_data(inference_data = hdb_flat_df)
 
+    if PRED_MODEL_EXPLAINER:
+        shap_values = PRED_MODEL_EXPLAINER(processed_hdb_flat_df)
+
+        return jsonpickle.encode(shap_values[0])
+
+    else:
+        return

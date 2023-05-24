@@ -64,7 +64,7 @@ process_train_data:
     random_state: 42
 
 model_params:
-  chosen_model: "ebm" # randforest, ebm, xgboost
+  chosen_model: "xgboost" # randforest, ebm, xgboost
 
   randforest:
     model_name: "randforest"
@@ -102,17 +102,17 @@ model_params:
       random_state: 42
 
 mlflow:
-  artifact_name: 'ebm'
+  artifact_name: 'xgboost'
   experiment_name: "best models v1"
   description: 'best models'
-  model_name: 'best_ebm_v1.joblib'
+  model_name: 'best_xgboost_v1.joblib'
   tags:
-    model-architecture: "ebm"
+    model-architecture: "xgboost"
 
 evaluator:
   rounding_last_n: 5
   feature_importance_top_n: 10
   no_of_cv_folds: # Leave blank to use train-test or train-val-test split
-  shap_explainer: False
+  shap_explainer: True
 
 optimisation_metric: "val_root_mean_squared_error" # metric for optimisation
