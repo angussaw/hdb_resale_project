@@ -1,20 +1,17 @@
-from fastapi import FastAPI, Response
+
+from fastapi import FastAPI
+import jsonpickle
 import logging
 import mlflow
 import os
-import joblib
 import pandas as pd
-import glob
+import sys
 import yaml
-import shap
-from fastapi.responses import ORJSONResponse
-import json
-import jsonpickle
+import uvicorn
 
 with open('conf/data_prep.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
-import sys
 sys.path.append("src")
 import hdb_resale_estimator as hdb_est
 
@@ -36,18 +33,18 @@ else:
 
 app = FastAPI()
 
+
 @app.post("/predict")
 def predict_resale_value(hdb_flat_dict: dict):
-    """_summary_
+    """Get model prediction of hdb resale value
 
     Args:
-        hdb_flat_dict (dict): _description_
+        hdb_flat_dict (dict): Dictionary containing derived hdb features post data prep
+        (data cleaning + feature engineering)
     """
 
     hdb_flat_df = pd.DataFrame([hdb_flat_dict])[PRED_MODEL_FEATURES]
-
     processed_hdb_flat_df = builder.process_inference_data(inference_data = hdb_flat_df)
-
     result = PRED_MODEL.predict(processed_hdb_flat_df)
 
     return result.tolist()[0]
@@ -55,10 +52,10 @@ def predict_resale_value(hdb_flat_dict: dict):
 
 @app.post("/dataprep")
 def prepare_raw_data(input_data: dict):
-    """_summary_
+    """Clean and process raw input data
 
     Args:
-        hdb_flat_dict (dict): _description_
+        hdb_flat_dict (dict): Dictionary containing raw hdb features
     """
 
     input_data = pd.DataFrame([input_data])
@@ -80,20 +77,22 @@ def prepare_raw_data(input_data: dict):
 
 @app.post("/explain")
 def generate_shap_values(hdb_flat_dict: dict):
-    """_summary_
+    """Generate shap values to explain each model prediction on a hdb flat
 
     Args:
-        hdb_flat_dict (dict): _description_
+        hdb_flat_dict (dict): Dictionary containing derived hdb features post data prep
+        (data cleaning + feature engineering)
     """
 
     hdb_flat_df = pd.DataFrame([hdb_flat_dict])[PRED_MODEL_FEATURES]
-
     processed_hdb_flat_df = builder.process_inference_data(inference_data = hdb_flat_df)
 
     if PRED_MODEL_EXPLAINER:
         shap_values = PRED_MODEL_EXPLAINER(processed_hdb_flat_df)
-
         return jsonpickle.encode(shap_values[0])
 
     else:
         return
+
+if __name__ == "__main__":
+    uvicorn.run("fast_api:app", host="0.0.0.0", port=8500)

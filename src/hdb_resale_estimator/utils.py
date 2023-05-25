@@ -412,31 +412,33 @@ def check_duplicate_date_input(
 
 def retrieve_builder(run_id: str,
                     model_uri: str,
-                    model_name: str,
-                    destination_path: str ="./models"):
+                    destination_path: str ="models"):
     """
     Function to retrieve a trained model from MLFLow for inference
 
     Args:
         run_id (str): MLFlow run id
         model_uri (str): MLFlow model uri
-        model_name (str): MLFlow model name
         destination_path (str): Path to save model to
 
     Returns:
         Builder object with trained model
     """
 
-    artifact_uri = f'mlflow-artifacts:/{run_id}/{model_uri}/artifacts/{model_name}'
+
+    artifact_uri = f'mlflow-artifacts:/{run_id}/{model_uri}/artifacts/model'
+    logger.info("Downloading artifacts from MLFlow model URI: %s...", model_uri)
     try:
         mlflow.artifacts.download_artifacts(
             artifact_uri=artifact_uri, dst_path=destination_path
         )
     except Exception as mlflow_error:
+        logger.exception("Failed to load model: %s", mlflow_error)
         raise mlflow_error
-    
-    model_file = os.path.split(artifact_uri)[1]
-    builder = joblib.load(f'{destination_path}/{model_file}')
+
     logger.info("Artifact download successful")
+
+    model_path = glob.glob(f"{destination_path}/model/*.joblib")[-1]
+    builder = joblib.load(model_path)
 
     return builder

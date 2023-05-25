@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/streamlit_app.Dockerfile
+    image: "hdb_frontend:0.1.0"
+    ports:
+      - 8501:8501
+    depends_on:
+      - backend
+  backend:
+    build:
+      context: .
+      dockerfile: docker/fast_api.Dockerfile
+    image: "hdb_backend:0.1.0"
+    ports:
+      - 8500:8500
+    environment:
+      - MLFLOW_TRACKING_URI=http://host.docker.internal:5005
+      - MODEL_URI=d91f68fb4c6e41c3be75093d4a40a934
+      - RUN_ID=194177493496013876

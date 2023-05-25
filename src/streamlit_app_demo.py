@@ -3,18 +3,31 @@ from datetime import datetime
 import folium
 from geopy.distance import geodesic
 import hdb_resale_estimator as hdb_est
-import json
-import jsonpickle
+import joblib
 import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
-import requests
 import shap
 import streamlit as st
 from streamlit_folium import folium_static
+import sys
+import yaml
+
+sys.path.append("conf")
+with open('conf/data_prep.yaml', 'r') as file:
+    config = yaml.safe_load(file)
 
 logger = logging.getLogger(__name__)
+model_path = "models//model/best_xgboost_v1.joblib"
+builder = joblib.load(model_path)
+
+PRED_MODEL = builder.model
+PRED_MODEL_FEATURES = builder.objects["features"] # before encoding
+if "explainer" in builder.objects.keys():
+    PRED_MODEL_EXPLAINER = builder.objects["explainer"]
+else:
+    PRED_MODEL_EXPLAINER = None
 
 def validate_input_data(input: dict):
     """Helper function to ensure input values can be used for inference
@@ -38,11 +51,11 @@ def main():
     When button to estimate resale price is clicked:
         - Validation of input data
         - Display basic flat details on dashboard
-        - Post request to backend to perform data prep
+        - Perform data prep (data cleaning + feature engineering)
         - Display additional amenity information on dashboard
-        - Post request to backend to predict resale value
+        - Predict resale value using model
         - Render map showing the hdb flat surroundings and nearby amenities
-        - Post request to backend to generate shap values
+        - Generate shap values using explainer
         - Render waterfall plot of shap values to explain model prediction
     """
 
@@ -142,14 +155,25 @@ def main():
             input_df = input_df.rename(columns={"month":"year-month"})
             st.table(data=input_df)
 
-            # Post request to backend to perform data prep
-            derived_input_data = requests.post(url = "http://backend:8500/dataprep",  data = json.dumps(input, default=str))
+            # Perform data prep (data cleaning + feature engineering)
+            data_cleaner = hdb_est.data_prep.data_cleaning.DataCleaner(raw_hdb_data=pd.DataFrame([input]),
+                                                                        params=config["data_prep"],
+                                                                        inference_mode=True)
+            clean_input_data = data_cleaner.clean_data()
 
-            # Post request to backend to predict resale value
-            predicted_resale_value = requests.post(url = "http://backend:8500/predict",  data = json.dumps(derived_input_data.json(), default=str))
+            feature_engineer = hdb_est.data_prep.feature_engineering.FeatureEngineer(
+                params=config["data_prep"], inference_mode=True
+            )
+
+            derived_input_data_df = feature_engineer.engineer_features(
+                hdb_data=clean_input_data)
+
+            # Predict resale value using model
+            hdb_flat_df = derived_input_data_df[PRED_MODEL_FEATURES]
+            processed_hdb_flat_df = builder.process_inference_data(inference_data = hdb_flat_df)
+            predicted_resale_value = PRED_MODEL.predict(processed_hdb_flat_df)
 
             # Display additional amenity information on dashboard
-            derived_input_data_df = pd.DataFrame([derived_input_data.json()], index=["Value"])
             number_of_amenities_df = derived_input_data_df[[col for col in derived_input_data_df.columns if col.startswith("no_of")]]
             radius = [int(x) for x in number_of_amenities_df.columns[0] if x.isdigit()][0]
             number_of_amenities_df.columns = [col.replace("no_of_","").replace(f"_within_{radius}_km","").upper() for col in number_of_amenities_df.columns]
@@ -168,7 +192,7 @@ def main():
 
 
             st.subheader('Predicted resale value:')
-            st.write(round(float(predicted_resale_value.text),0))
+            st.write(round(float(predicted_resale_value),0))
 
             # Render map showing the hdb flat surroundings and nearby amenities
             flat_coordinates = [derived_input_data_df.iloc[0]["latitude"], derived_input_data_df.iloc[0]["longitude"]]
@@ -212,14 +236,13 @@ def main():
                 folium_static(map, width=450, height=400)
 
             with right:
-                # Post request to backend to generate shap values
-                shap_values = requests.post(url = "http://backend:8500/explain",  data = json.dumps(derived_input_data.json(), default=str))
-                if shap_values.json():
+                if PRED_MODEL_EXPLAINER:
+                    # Generate shap values using explainer
+                    shap_values = PRED_MODEL_EXPLAINER(processed_hdb_flat_df)
                     # Render waterfall plot of shap values to explain model prediction
-                    shap_values = jsonpickle.decode(shap_values.json())
                     st.subheader('SHAP values summary')
                     fig, ax = plt.subplots(nrows=1, ncols=1)
-                    shap.plots.waterfall(shap_values, max_display=15, show=False)
+                    shap.plots.waterfall(shap_values[0], max_display=15, show=False)
                     st.pyplot(fig)
 
     else:
