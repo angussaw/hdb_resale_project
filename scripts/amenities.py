@@ -26,6 +26,7 @@ def find_coordinates(amenities_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     output_df = pd.DataFrame()
+    found = 0
     for add in tqdm(list(amenities_df["Name"])):
         add_url = (url+ add)
         # Retrieve information from website
@@ -41,6 +42,9 @@ def find_coordinates(amenities_df: pd.DataFrame) -> pd.DataFrame:
             result["address"] = add
 
             output_df = pd.concat([output_df,result])
+            found += 1
+
+    print(f"Found coordinates for {found} out of {len(amenities_df)} amenities")
 
     return output_df
 
@@ -137,27 +141,27 @@ mrt_stations_coordinates.to_csv("data/for_feature_engineering/mrt_stations/mrt_s
 ###############
 #### MALLS ####
 ###############
-# malls="https://en.wikipedia.org/wiki/List_of_shopping_malls_in_Singapore"
-# response = requests.get(malls)
-# print(f"Malls: {response.status_code}")
-# soup = BeautifulSoup(response.text, 'html.parser')
+malls="https://en.wikipedia.org/wiki/List_of_shopping_malls_in_Singapore"
+response = requests.get(malls)
+print(f"Malls: {response.status_code}")
+soup = BeautifulSoup(response.text, 'html.parser')
 
-# malls = []
-# for i in soup.find_all('li'):
-#     if i.string != None:
-#         malls.append(i.string)
-#     else:
-#         malls.append(i.text)
+malls = []
+for i in soup.find_all('li'):
+    if i.string != None:
+        malls.append(i.string)
+    else:
+        malls.append(i.text)
         
-# malls_df = pd.DataFrame(malls)
-# malls_df.columns = ["Name"]
-# malls_df = malls_df.drop_duplicates().reset_index(drop = True)
-# malls_df = malls_df.iloc[8:173,].reset_index(drop=True)
-# patt = r'\[(.*?)\]'
-# malls_df["Name"] = malls_df["Name"].apply(lambda x: x.replace(["[{}]".format(i) for i in re.findall(patt, x)][0],"") if bool(re.search(patt, x)) else x)
-# print("Retrieving mall coordinates.....")     
-# mall_coordinates = find_coordinates(malls_df)
-# mall_coordinates.to_csv("data/for_feature_engineering/malls/mall_coordinates_test.csv", index=False)
+malls_df = pd.DataFrame(malls)
+malls_df.columns = ["Name"]
+malls_df = malls_df.drop_duplicates().reset_index(drop = True)
+malls_df = malls_df.iloc[45:212,].reset_index(drop=True)
+patt = r'\[(.*?)\]'
+malls_df["Name"] = malls_df["Name"].apply(lambda x: x.replace(["[{}]".format(i) for i in re.findall(patt, x)][0],"") if bool(re.search(patt, x)) else x)
+print("Retrieving mall coordinates.....")     
+mall_coordinates = find_coordinates(malls_df)
+mall_coordinates.to_csv("data/for_feature_engineering/malls/mall_coordinates_test.csv", index=False)
 
 ###############
 #### PARKS ####
