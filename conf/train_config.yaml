@@ -35,7 +35,7 @@ hydra:
     direction: ["minimize"]
     study_name: "random_seed_tuning"
     storage: null
-    n_trials: 50
+    n_trials: 35
     n_jobs: 1
 
     params:
@@ -64,7 +64,7 @@ process_train_data:
     random_state: 42
 
 model_params:
-  chosen_model: "xgboost" # randforest, ebm, xgboost
+  chosen_model: "randforest" # randforest, ebm, xgboost
 
   randforest:
     model_name: "randforest"
@@ -96,18 +96,18 @@ model_params:
     one_hot_encode: True
     scale_data: False
     params:
-      max_depth: 9 #Default: 6
-      n_estimators: 420 #Default: 100
+      max_depth: 8 #Default: 6
+      n_estimators: 480 #Default: 100
       learning_rate: 0.1 #Default: 0.3
       random_state: 42
 
 mlflow:
-  artifact_name: 'xgboost'
+  artifact_name: 'randforest'
   experiment_name: "best models v1"
   description: 'best models'
-  model_name: 'best_xgboost_v1.joblib'
+  model_name: 'best_randforest_v1.joblib'
   tags:
-    model-architecture: "xgboost"
+    model-architecture: "randforest"
 
 evaluator:
   rounding_last_n: 5
