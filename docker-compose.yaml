@@ -19,5 +19,5 @@ services:
       - 8500:8500
     environment:
       - MLFLOW_TRACKING_URI=http://host.docker.internal:5005
-      - MODEL_URI=d91f68fb4c6e41c3be75093d4a40a934
+      - MODEL_URI=bd0fbc471f004d54b70a74a218476f11
       - RUN_ID=194177493496013876
