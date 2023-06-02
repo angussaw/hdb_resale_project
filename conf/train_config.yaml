@@ -1,7 +1,7 @@
 files:
   derived_features:
     read_from_source: postgres
-    params:
+    postgres_params:
       table_name: "hdb_training_features"
       columns:
         - month
@@ -21,6 +21,10 @@ files:
         - distance_to_nearest_MRT_stations
         - region
         - resale_price
+    csv_params:
+      data_path: "data/preprocessed/for_training/hdb_preprocessed.csv"
+      concat: False
+
 
 label_column: resale_price
 

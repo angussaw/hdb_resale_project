@@ -23,7 +23,7 @@ def main(train_config):
             read_from_source = train_config["files"]["derived_features"][
                 "read_from_source"
             ]
-            read_params = train_config["files"]["derived_features"]["params"]
+            read_params = train_config["files"]["derived_features"][f"{read_from_source}_params"]
 
             derived_hdb_features = hdb_est.utils.read_data(
                 source=read_from_source, params=read_params

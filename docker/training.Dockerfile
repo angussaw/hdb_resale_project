@@ -12,6 +12,7 @@ USER $USER
 COPY --chown=$ID:$ID $REQUIREMENTS_TXT .
 RUN pip3 install -r $REQUIREMENTS_TXT
 
+COPY --chown=$ID:$ID data/ data/
 COPY --chown=$ID:$ID src/ src/
 COPY --chown=$ID:$ID conf/ conf/
 CMD python src/train_pipeline.py

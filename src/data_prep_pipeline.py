@@ -20,10 +20,10 @@ def main():
 
             logger.info("Performing data preparation in training mode...")
             raw_hdb_data = hdb_est.utils.read_data(
-                source=data_prep_config["files"]["training"]["raw_data"][
+                source=data_prep_config["files"]["raw_data"][
                     "read_from_source"
                 ],
-                params=data_prep_config["files"]["training"]["raw_data"]["params"],
+                params=data_prep_config["files"]["raw_data"]["params"],
             )
             logger.info("Shape of raw hdb data: %s", raw_hdb_data.shape)
 
@@ -40,11 +40,11 @@ def main():
         # Save clean and engineered mppa data
         logger.info(
             "Saving derived hdb features to %s...",
-            data_prep_config["files"]["training"]["save_to_source"],
+            data_prep_config["files"]["save_to_source"],
         )
-        if data_prep_config["files"]["training"]["save_to_source"] == "postgres":
+        if data_prep_config["files"]["save_to_source"] == "postgres":
             db_engine = hdb_est.utils.create_postgres_engine()
-            derived_features_table_name = data_prep_config["files"]["training"][
+            derived_features_table_name = data_prep_config["files"][
                 "derived_features_table_name"
             ]
             hdb_est.utils.push_data_to_sql(
@@ -54,8 +54,8 @@ def main():
                 "Derived mppa features is saved in %s", derived_features_table_name
             )
 
-        elif data_prep_config["files"]["training"]["save_to_source"] == "local":
-            preprocessed_save_path = data_prep_config["files"]["training"][
+        elif data_prep_config["files"]["save_to_source"] == "local":
+            preprocessed_save_path = data_prep_config["files"][
                 "preprocessed_save_path"
             ]
             hdb_preprocessed.to_csv(preprocessed_save_path)
