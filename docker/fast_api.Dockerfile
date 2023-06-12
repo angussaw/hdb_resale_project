@@ -17,6 +17,10 @@ COPY --chown=$ID:$ID conf/ conf/
 COPY --chown=$ID:$ID models/ models/
 COPY --chown=$ID:$ID data/for_feature_engineering data/for_feature_engineering
 
+ENV MLFLOW_TRACKING_URI=http://host.docker.internal:5005
+ENV MODEL_URI=bd0fbc471f004d54b70a74a218476f11
+ENV RUN_ID=194177493496013876
+
 EXPOSE 8500
 
 CMD python src/fast_api.py

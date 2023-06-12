@@ -101,7 +101,7 @@ python scripts/amenities.py
 ### If saving to postgres, assuming the postgres database and table exists with the correct schema:
 
 ```yaml
-### data_prep.yaml
+### conf/data_prep.yaml
 files:
     save_to_source: "postgres"
     derived_features_table_name: <insert postgres table name to save derived features to>
@@ -139,7 +139,7 @@ docker run --rm --name hdb_data_prep -e DATE=%DATE% -e POSTGRES_USER=%POSTGRES_U
 ### Else if saving to a csv file to data/preprocessed/for_training:
 
 ```yaml
-### data_prep.yaml
+### conf/data_prep.yaml
 files:
     save_to_source: "csv"
     preprocessed_save_path: "data/preprocessed/for_training/hdb_preprocessed.csv"
@@ -169,7 +169,7 @@ docker run --rm --name hdb_data_prep -e DATE=%DATE% hdb_data_prep:0.1.0
 ### If reading derived features from postgres table, assuming the postgres database and table exists with the correct schema::
 
 ```yaml
-### train_config.yaml
+### conf/train_config.yaml
 files:
   derived_features:
     read_from_source: postgres
@@ -238,7 +238,7 @@ docker run --rm --name hdb_training -e POSTGRES_USER=%POSTGRES_USER% -e POSTGRES
 ### Else if reading from a csv file in data/preprocessed/for_training:
 
 ```yaml
-### train_config.yaml
+### conf/train_config.yaml
 files:
   derived_features:
     read_from_source: csv
@@ -298,31 +298,12 @@ OR
 mlflow server --port=<insert port>
 ```
 
-```yaml
-### docker-compose.yaml
-version: "3"
+```dockerfile
+### docker/fast_api.Dockerfile
 
-services:
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/streamlit_app.Dockerfile
-    image: "hdb_frontend:0.1.0"
-    ports:
-      - 8501:8501
-    depends_on:
-      - backend
-  backend:
-    build:
-      context: .
-      dockerfile: docker/fast_api.Dockerfile
-    image: "hdb_backend:0.1.0"
-    ports:
-      - 8500:8500
-    environment:
-      - MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
-      - MODEL_URI=<insert mlfow model uri of chosen model>
-      - RUN_ID=<insert mlfow run id of chosen model>
+ENV MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
+ENV MODEL_URI=<insert mlfow model uri of chosen model>
+ENV RUN_ID=<insert mlfow run_id of chosen model>
 ```
 
 ```cmd

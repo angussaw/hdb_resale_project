@@ -33,8 +33,24 @@ if "explainer" in builder.objects.keys():
 else:
     PRED_MODEL_EXPLAINER = None
 
+description = """
+api_server API to predict and explain hdb resale prices.
+"""
 
-app = FastAPI()
+
+app = FastAPI(title="api_server",
+              description=description,
+              version="fastapi:1.0")
+
+@app.get("/")
+def read_root():
+    """Landing Page of API
+
+    Returns:
+        JSON: {"content": "FastAPI to predict and explain hdb resale prices", "version": "<version>",  "model": "<run_id>/<model_uri>"}
+    """
+    
+    return {"content": "FastAPI to predict and explain hdb resale prices", "version": "1.0", "model": f"{run_id}/{model_uri}"}
 
 
 @app.post("/predict")
