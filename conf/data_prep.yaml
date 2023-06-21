@@ -29,6 +29,11 @@ data_prep:
         - "MULTI-GENERATION"
         - "MULTI GENERATION"
 
+    remove_flat_models:
+      flat_type: "flat_model"
+      remove:
+        - "3Gen"
+
     replace_flat_models:
       flat_model: flat_model
       replace:
@@ -59,6 +64,11 @@ data_prep:
       longitude: "longitude"
       block: "block"
       street_name: "street_name"
+      flat_coordinates:
+        read_from_source: csv
+        params:
+          data_path: "data/eda/flat_coordinates.csv"
+          concat: False
       amenities:
         malls:
           amenities_data:

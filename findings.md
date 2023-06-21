@@ -19,9 +19,9 @@ For deployment, the model is deployed on a dashboard that users can input flat d
 - API requests
 - Webscraping tools (BeautifulSoup)
 
-The HDB resale price data was downloaded from Data.gov.sg, containing approximately 120,000 resale transactions from 2015 to 2020. 
+The HDB resale price data was downloaded from Data.gov.sg, containing approximately 192,000 resale transactions from January 2015 to June 2023. 
 
-There are a total of 117,527 rows and 11 columns in the dataset. Each row represents a hdb resale transaction, and the target variable is the "resale_price" variable. 
+There are a total of 192,489 rows and 11 columns in the dataset. Each row represents a hdb resale transaction, and the target variable is the "resale_price" variable. 
 
 The EDA selection consists of the following main tasks: 
 1. Perform one-way ANOVA tests on raw categorical features with the target variable to check whether the unique categorical values have statistically significant differing mean resale prices (eg towns, flat model, flat type etc...)
@@ -42,32 +42,32 @@ Here are the highlights of the EDA performed on the dataset. Please refer to the
 <u>Overview of raw features EDA</u>
 
 
-| No | Feature             | Type            | Nulls present | Comments                                                                                                                                                                                                                  |
-| -- | ------------------- | --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1  | Month               | Object (string) | No            | \- In its raw form, need to convert it to datetime and extract out the year and month values                                                                                                                              |
-| 2  | Town                | Object (string) | No            | \- significant relationship with target (one-way ANOVA)<br>\- High cardinality (26 unique values)<br>\- Will need to map to region to reduce cardinality                                                                  |
-| 3  | Flat Type           | Object (string) | No            | \- very little samples with "MULTI-GENERATION" and "1 ROOM"<br>\- can consider dropping samples<br>\- majority flat type is "4 ROOM"<br>\- significant relationship with target (one-way ANOVA)                           |
-| 4  | Block               | Object (string) | No            | \- too many unique values, likely not useful in predicting target variable                                                                                                                                                |
-| 5  | Street Name         | Object (string) | No            | \- too many unique values, likely not useful in predicting target variable                                                                                                                                                |
-| 6  | Flat Model          | Object (string) | No            | \- significant relationship with target (one-way ANOVA)<br>\- High cardinality (20 unique values)<br>\- Will need to consolidate common flat models together to reduce cardinality<br>\- majority flat model is "Model A" |
-| 7  | Storey Range        | Object (string) | No            | \- significant relationship with target (one-way ANOVA)<br>\- May need to ordinal encode into numerical variable<br>\- majority storey range is "7 to 9"                                                                  |
-| 8  | Floor Square Meter  | Float           | No            | \- strong positive correlation with target (pearson R)<br>\- mean floor area is 97.4sqm                                                                                                                                  |
-| 9  | Lease Commence Date | Int             | No            | \- could use along with the year value it to calculate lease age, which has a negative correlation with target  (pearson R)                                                                                               |
-| 10 | Remaining Lease     | Object (string) | No            | \- likely correlated with lease age and lease commence date<br>\- data quality is inconsistent (eg 86 years, 86, 86 years 07 months)                                                                                      |
+| No | Feature             | Type            | Nulls present | Comments                                                                                                                                                                                                                                                                  |
+| -- | ------------------- | --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | Month               | Object (string) | No            | \- In its raw form, need to convert it to datetime and extract out the year and month values                                                                                                                                                                              |
+| 2  | Town                | Object (string) | No            | \- significant relationship with target (one-way ANOVA)<br>\- High cardinality (26 unique values)<br>\- Will need to map to region to reduce cardinality                                                                                                                  |
+| 3  | Flat Type           | Object (string) | No            | \- very little samples with "MULTI-GENERATION" and "1 ROOM"<br>\- can consider dropping samples<br>\- majority flat type is "4 ROOM"<br>\- significant relationship with target (one-way ANOVA)                                                                           |
+| 4  | Block               | Object (string) | No            | \- too many unique values, likely not useful in predicting target variable                                                                                                                                                                                                |
+| 5  | Street Name         | Object (string) | No            | \- too many unique values, likely not useful in predicting target variable                                                                                                                                                                                                |
+| 6  | Flat Model          | Object (string) | No            | \- significant relationship with target (one-way ANOVA)<br>\- High cardinality (20 unique values)<br>\- Will need to consolidate common flat models together to reduce cardinality<br>\- majority flat model is "Model A"<br>\- can consider dropping samples with "3Gen" |
+| 7  | Storey Range        | Object (string) | No            | \- significant relationship with target (one-way ANOVA)<br>\- May need to ordinal encode into numerical variable<br>\- majority storey range is "7 to 9"                                                                                                                  |
+| 8  | Floor Square Meter  | Float           | No            | \`- strong positive correlation with target (pearson R)<br>\- mean floor area is 97.4sqm                                                                                                                                                                                  |
+| 9  | Lease Commence Date | Int             | No            | \- Could use along with the year value it to calculate lease age, which has a negative correlation with target  (pearson R)                                                                                                                                               |
+| 10 | Remaining Lease     | Object (string) | No            | \- likely correlated with lease age and lease commence date<br>\- data quality is inconsistent (eg 86 years, 86, 86 years 07 months)                                                                                                                                      |
 
 
 <u>Overview of generated features EDA</u>
 
 | No | Feature                         | Type  | Nulls present | Comments                                                                                                                                                                                                                    |
 | -- | ------------------------------- | ----- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1  | no_of_schools_within_2_km       | Int   | No            | \- slight negative (-) correlation with the resale value of the flat<br>\- the greater the number of schools within 2km radius, the lower the resale value<br>\- mean number of schools within 2km radius is about 15           |
-| 2  | distance_to_nearest_school      | Float | No            | \- slight positive (+) correlation with the resale value of the flat<br>\- the further away the flat is to its nearest school, the higher the resale value<br>\- mean distance to the nearest school is about 300m              |
-| 3  | no_of_mrt_stations_within_2_km  | Int   | No            | \- slight positive (+) correlation with the resale value of the flat<br>\- the greater the number of mrt stations within 2km radius, the higher the resale value<br>\- mean number of mrt stations within 2km radius is about 3 |
-| 4  | distance_to_nearest_mrt_station | Float | No            | \- slight negative (-) correlation with the resale value of the flat<br>\- the further away the flat is to its nearest mrt station, the lower the resale value<br>\- mean distance to the nearest mrt station is about 855m     |
-| 5  | no_of_malls_within_2_km         | Int   | No            | \- slight positive (+) correlation with the resale value of the flat<br>\- the greater the number of malls within 2km radius, the higher the resale value<br>\- mean number of malls within 2km radius is about 5               |
-| 6  | distance_to_nearest_mall        | Float | No            | \- slight negative (-) correlation with the resale value of the flat<br>\- the further away the flat is to its nearest mall, the lower the resale value<br>\- mean distance to the nearest mall is about 665m                   |
-| 7  | no_of_parks_within_2_km         | Int   | No            | \- slight positive (+) correlation with the resale value of the flat<br>\- the greater the number of parks within 2km radius, the higher the resale value<br>\-  mean number of parks within 2km radius is almost 2             |
-| 8  | distance_to_nearest_park        | Float | No            | \- slight negative (-) correlation with the resale value of the flat<br>\- the further away the flat is to its nearest park, the lower the resale value<br>\- mean distance to the nearest park is about 1.2km                  |
+| 1  | no_of_schools_within_2_km       | Int   | No            | \- slight negative correlation with the resale value of the flat<br>\- the greater the number of schools within 2km radius, the lower the resale value<br>\- mean number of schools within 2km radius is about 15           |
+| 2  | distance_to_nearest_school      | Float | No            | \- slight positive correlation with the resale value of the flat<br>\- the further away the flat is to its nearest school, the higher the resale value<br>\- mean distance to the nearest school is about 334m              |
+| 3  | no_of_mrt_stations_within_2_km  | Int   | No            | \- slight positive correlation with the resale value of the flat<br>\- the greater the number of mrt stations within 2km radius, the higher the resale value<br>\- mean number of mrt stations within 2km radius is about 3 |
+| 4  | distance_to_nearest_mrt_station | Float | No            | \- slight negative correlation with the resale value of the flat<br>\- the further away the flat is to its nearest mrt station, the lower the resale value<br>\- mean distance to the nearest mrt station is about 851m     |
+| 5  | no_of_malls_within_2_km         | Int   | No            | \- slight positive correlation with the resale value of the flat<br>\- the greater the number of malls within 2km radius, the higher the resale value<br>\- mean number of malls within 2km radius is about 5               |
+| 6  | distance_to_nearest_mall        | Float | No            | \- slight negative correlation with the resale value of the flat<br>\- the further away the flat is to its nearest mall, the lower the resale value<br>\- mean distance to the nearest mall is about 668m                   |
+| 7  | no_of_parks_within_2_km         | Int   | No            | \- slight positive correlation with the resale value of the flat<br>\- the greater the number of parks within 2km radius, the higher the resale value<br>\-  mean number of parks within 2km radius is almost 2             |
+| 8  | distance_to_nearest_park        | Float | No            | \- slight negative correlation with the resale value of the flat<br>\- the further away the flat is to its nearest park, the lower the resale value<br>\- mean distance to the nearest park is about 1.2km                  |
 
 ## <b>Data Preparation Pipeline</b>
 ### <u>Tools used</u>
@@ -118,22 +118,22 @@ For each model architecture, a baseline model is trained using all derived featu
 | ------------------------------ | -------- | ---------- | ------- | ---------- | ----- | ---------- | ---------- | ---------- | ------- | ---------- | ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |                                | MAE      |            | RMSE    |            | r2    |            | MAE        |            | RMSE    |            | r2    |            |                                                                                                                                                                                 |
 |                                | Train    | Validation | Train   | Validation | Train | Validation | Train      | Validation | Train   | Validation | Train | Validation |                                                                                                                                                                                 |
-| <b>Random Forest</b>                  | 49963.5  | 49963.5    | 69247.1 | 68800.6    | 0.771 | 0.77       | 9711       | 18767.4    | 13282.7 | 26525.8    | 0.992 | 0.966      | \-max_depth: 20<br>\-min_samples_leaf: 1<br>\-n_estimators: 205                                                                                                                 |
-| <b>Explainable Boosting Regressor</b> | 39630.6  | 39798.3    | 55222.2 | 55435.6    | 0.855 | 0.85       | 33511.2    | 34140      | 45915.1 | 46890.1    | 0.899 | 0.893      | \-inner_bags: 0<br>\-interactions: 10<br>\-learning_rate: 0.01<br>\-max_bins: 256<br>\- max_interaction_bins: 32<br>\-max_leaves: 3<br>\-min_samples_leaf: 2<br>\-outer_bags: 8 |
-| <b>XGBoost</b>                        | 18948.8  | 21166      | 25637.9 | 29166.1    | 0.969 | 0.959      | 12427.8    | 17919.3    | 16657.6 | 25119.7    | 0.987 | 0.969      | \-learning_rate: 0.1<br>\-max_depth: 8<br>\-n_estimators: 480                                                                                                                   |
+| Random Forest                  | 49963.5  | 49963.5    | 69247.1 | 68800.6    | 0.771 | 0.77       | 10988.9    | 20387.4    | 15128.1 | 29324.4    | 0.991 | 0.967      | \-max_depth: 20<br>\-min_samples_leaf: 1<br>\-n_estimators: 205                                                                                                                 |
+| Explainable Boosting Regressor | 39630.6  | 39798.3    | 55222.2 | 55435.6    | 0.855 | 0.85       | 33511.2    | 34140      | 45915.1 | 46890.1    | 0.899 | 0.893      | \-inner_bags: 0<br>\-interactions: 10<br>\-learning_rate: 0.01<br>\-max_bins: 256<br>\- max_interaction_bins: 32<br>\-max_leaves: 3<br>\-min_samples_leaf: 2<br>\-outer_bags: 8 |
+| XGBoost                        | 21128.4  | 22400.2    | 28757.7 | 31126.2    | 0.968 | 0.963      | 10689.7    | 18197.3    | 14394.9 | 25792.9    | 0.992 | 0.975      | \-learning_rate: 0.1<br>\-max_depth: 10<br>\-n_estimators: 470                                                                                                                  |
 
-For the baseline models, XGBoost has the lowest validation root mean squared error of 29116, and the highest validation R squared score of 0.959. There is not much overfitting on the training set, as observed by the minor differences between the train and validation scores.
+For the baseline models, XGBoost has the lowest validation root mean squared error of 31126, and the highest validation R squared score of 0.963. There is not much overfitting on the training set, as observed by the minor differences between the train and validation scores.
 
-After fine tuning the hyperparameters to minimize the validation root mean squared error using the Optuna's TPE sampler, the XGBoost model's validation root mean squared error and R squared score decreased and increased to 25119 and 0.969 respectively. The fine-tuned XGBoost model was using a learning rate of 0.1 (default: 0.3), maximmum depth of 8 (default: 6) and 480 estimators (default: 100). 
+After fine tuning the hyperparameters to minimize the validation root mean squared error using the Optuna's TPE sampler, the XGBoost model's validation root mean squared error and R squared score decreased and increased to 25793 and 0.975 respectively. The fine-tuned XGBoost model was using a learning rate of 0.1 (default: 0.3), maximmum depth of 10 (default: 6) and 470 estimators (default: 100). 
 
-The fine-tuned random forest model's validation root mean squared error and R squared score decreased and increased to 26525 and 0.966 respectively. It uses a max depth of 20, and 205 estimators (default: 100)
+The fine-tuned random forest model's validation root mean squared error and R squared score decreased and increased to 29324 and 0.967 respectively. It uses a max depth of 20, and 205 estimators (default: 100)
 
 The selected models are also evaluated on the test set to ensure that the model is able estimate accurate predictions on new unseen data
 
 |                      | MAE     | RMSE    | r2    |
 | -------------------- | ------- | ------- | ----- |
-| <b>Random Forest</b> | 18418.9 | 25936.6 | 0.968 |
-| <b>XGBoost</b>       | 17816.8 | 24751.4 | 0.971 |
+| <b>Random Forest</b> | 20207.5 | 28928.9 | 0.968 |
+| <b>XGBoost</b>       | 17824.1 | 25151.6 | 0.976 |
 
 
 
@@ -146,11 +146,12 @@ SHAP values were calculated using the training set feature values, and were used
 
 ![image info](/images/xgboost_plots.png)
 
-Based on the summary plot for the XGBoost model, the top 5 features that have the highest SHAP values across all samples are "floor_area_sqm", "lease_age", "region_Central", "distance_to_nearest_MRT_stations" and "storey_range".
+Based on the summary plot for the XGBoost model, the top 6 features that have the highest SHAP values across all samples are "floor_area_sqm", "year", "lease_age", "region_Central", "distance_to_nearest_MRT_stations" and "storey_range".
 
 | Feature                          | Contribution to predicted value                                                                                                        |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | floor_area_sqm                   | The larger the floor area of a flat, the greater its contribution in increasing its predicted resale price, and vice versa             |
+| year                             | The more recent the resale transaction, the freater its contribution in increasing the predicted resale price, and vice versa          |
 | lease_age                        | The older the flat, the greater its contribution in decreasing its predicted resale price, and vice versa                              |
 | region_Central                   | If a flat is located in the central region, it increases the predicted resale price, and vice versa                                    |
 | distance_to_nearest_MRT_stations | The closer the nearest MRT station is to a flat, the greater its contribution in increasing its predicted resale price, and vice versa |

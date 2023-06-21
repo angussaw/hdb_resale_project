@@ -18,8 +18,8 @@ COPY --chown=$ID:$ID models/ models/
 COPY --chown=$ID:$ID data/for_feature_engineering data/for_feature_engineering
 
 ENV MLFLOW_TRACKING_URI=http://host.docker.internal:5005
-ENV MODEL_URI=bd0fbc471f004d54b70a74a218476f11
-ENV RUN_ID=194177493496013876
+ENV MODEL_URI=38d0ed447a714d01998318049ea8a905
+ENV RUN_ID=934552010482666058
 
 EXPOSE 8500
 

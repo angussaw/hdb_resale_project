@@ -101,7 +101,7 @@ school_df = pd.concat([prischooldf,secschooldf,jcschooldf,polyschooldf,unischool
 
 print("Retrieving school coordinates.....")
 school_coordinates = find_coordinates(school_df)
-school_coordinates.to_csv("data/for_feature_engineering/schools/school_coordinates_test.csv", index=False)
+school_coordinates.to_csv("data/for_feature_engineering/schools/school_coordinates.csv", index=False)
 
 
 ######################
@@ -136,7 +136,7 @@ mrt_stations_coordinates = find_coordinates(mrt_stations_df)
 mrt_stations_coordinates = mrt_stations_coordinates.rename(columns={"address":"Name"})
 mrt_stations_coordinates = mrt_stations_coordinates[["Name","LATITUDE","LONGITUDE"]]
 mrt_stations_coordinates = pd.merge(mrt_stations_coordinates, mrt_stations_df, how="left",on="Name")
-mrt_stations_coordinates.to_csv("data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period_test.csv",index=False)
+mrt_stations_coordinates.to_csv("data/for_feature_engineering/mrt_stations/mrt_station_coordinates_w_period.csv",index=False)
 
 ###############
 #### MALLS ####
@@ -161,7 +161,7 @@ patt = r'\[(.*?)\]'
 malls_df["Name"] = malls_df["Name"].apply(lambda x: x.replace(["[{}]".format(i) for i in re.findall(patt, x)][0],"") if bool(re.search(patt, x)) else x)
 print("Retrieving mall coordinates.....")     
 mall_coordinates = find_coordinates(malls_df)
-mall_coordinates.to_csv("data/for_feature_engineering/malls/mall_coordinates_test.csv", index=False)
+mall_coordinates.to_csv("data/for_feature_engineering/malls/mall_coordinates.csv", index=False)
 
 ###############
 #### PARKS ####
@@ -176,5 +176,5 @@ parks_df = parks_df[["Name"]]
 
 print("Retrieving park coordinates.....")
 parks_coordinates = find_coordinates(parks_df)
-parks_coordinates.to_csv("data/for_feature_engineering/parks/park_coordinates_test.csv", index=False)
+parks_coordinates.to_csv("data/for_feature_engineering/parks/park_coordinates.csv", index=False)
 
