@@ -151,7 +151,7 @@ Based on the summary plot for the XGBoost model, the top 6 features that have th
 | Feature                          | Contribution to predicted value                                                                                                        |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | floor_area_sqm                   | The larger the floor area of a flat, the greater its contribution in increasing its predicted resale price, and vice versa             |
-| year                             | The more recent the resale transaction, the freater its contribution in increasing the predicted resale price, and vice versa          |
+| year                             | The more recent the resale transaction, the greater its contribution in increasing the predicted resale price, and vice versa          |
 | lease_age                        | The older the flat, the greater its contribution in decreasing its predicted resale price, and vice versa                              |
 | region_Central                   | If a flat is located in the central region, it increases the predicted resale price, and vice versa                                    |
 | distance_to_nearest_MRT_stations | The closer the nearest MRT station is to a flat, the greater its contribution in increasing its predicted resale price, and vice versa |
