@@ -10,3 +10,5 @@ outputs/**
 mlruns/**
 mlartifacts/**
 multirun/**
+
+.env

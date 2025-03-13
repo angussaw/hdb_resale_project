@@ -96,7 +96,42 @@ pip install requirements.txt
 python scripts/amenities.py
 ```
 
+
+
 # 3. Data Preparation
+
+### Optional: Creating Postgres table for data preparation
+```sql
+CREATE TABLE <table_name_for_storing_derived_features> (
+    month INTEGER,
+    town VARCHAR(50),
+    flat_type VARCHAR(50),
+    block VARCHAR(50),
+    street_name VARCHAR(100),
+    storey_range VARCHAR(50),
+    floor_area_sqm FLOAT,
+    flat_model VARCHAR(50),
+    lease_commence_date INTEGER,
+    remaining_lease INTEGER,
+    resale_price FLOAT,
+    cpi FLOAT,
+    region VARCHAR(50),
+    year_month VARCHAR(50),
+    year INTEGER,
+    lease_age INTEGER,
+    latitude FLOAT,
+    longitude FLOAT,
+    no_of_malls_within_2_km INTEGER,
+    distance_to_nearest_malls FLOAT,
+    no_of_schools_within_2_km INTEGER,
+    distance_to_nearest_schools FLOAT,
+    no_of_parks_within_2_km INTEGER,
+    distance_to_nearest_parks FLOAT,
+    "no_of_MRT_stations_within_2_km" INTEGER,
+    "distance_to_nearest_MRT_stations" FLOAT, 
+    date_context VARCHAR(50)
+);
+```
 
 ### If saving to postgres, assuming the postgres database and table exists with the correct schema:
 
