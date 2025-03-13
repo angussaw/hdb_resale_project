@@ -112,7 +112,7 @@ CREATE TABLE <table_name_for_storing_derived_features> (
     floor_area_sqm FLOAT,
     flat_model VARCHAR(50),
     lease_commence_date INTEGER,
-    remaining_lease INTEGER,
+    remaining_lease VARCHAR(50),
     resale_price FLOAT,
     cpi FLOAT,
     region VARCHAR(50),
@@ -148,26 +148,13 @@ set POSTGRES_USER=<insert postgres user>
 set POSTGRES_PWD=<insert postgres password>
 set POSTGRES_PORT=<insert postgres port>
 set POSTGRES_DB=<insert postgres database>
-set POSTGRES_HOST=<insert postgres host>
-
-python src/data_prep_pipeline.py
-```
-
-OR
-
-```cmd
-set DATE=<current date: "yyy-mm-dd">
-set POSTGRES_USER=<insert postgres user>
-set POSTGRES_PWD=<insert postgres password>
-set POSTGRES_PORT=<insert postgres port>
-set POSTGRES_DB=<insert postgres database>
 set POSTGRES_HOST=host.docker.internal
 
 docker build -t hdb_data_prep:0.1.0 -f docker/data_prep.Dockerfile .  
 ```
 
 ```cmd
-docker run --rm --name hdb_data_prep -e DATE=%DATE% -e POSTGRES_USER=%POSTGRES_USER% -e POSTGRES_PWD=%POSTGRES_PWD% -e POSTGRES_HOST=%POSTGRES_HOST% -e POSTGRES_PORT=%POSTGRES_PORT% -e POSTGRES_DB=%POSTGRES_DB% --add-host=host.docker.internal:host-gateway hdb_data_prep:0.1.0
+docker run --rm --name hdb_data_prep -e DATE=%DATE% -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PWD=$POSTGRES_PWD -e POSTGRES_HOST=$POSTGRES_HOST -e POSTGRES_PORT=$POSTGRES_PORT -e POSTGRES_DB=$POSTGRES_DB --add-host=host.docker.internal:host-gateway hdb_data_prep:0.1.0
 ```
 
 
@@ -177,16 +164,8 @@ docker run --rm --name hdb_data_prep -e DATE=%DATE% -e POSTGRES_USER=%POSTGRES_U
 ### conf/data_prep.yaml
 files:
     save_to_source: "csv"
-    preprocessed_save_path: "data/preprocessed/for_training/hdb_preprocessed.csv"
+    preprocessed_save_path: "data/preprocessesd/for_training/hdb_preprocessed.csv"
 ```
-
-```cmd
-set DATE=<current date: "yyy-mm-dd">
-
-python src/data_prep_pipeline.py
-```
-
-OR
 
 ```cmd
 set DATE=<current date: "yyy-mm-dd">
@@ -200,6 +179,13 @@ docker run --rm --name hdb_data_prep -e DATE=%DATE% hdb_data_prep:0.1.0
 
 
 # 4. Training
+
+### Setting up mlflow server
+```cmd
+docker build -t mlflow-server -f docker/mlflow.Dockerfile .
+
+docker run --name mlflow_server -p <insert port for mlflow server>:<insert port for mlflow server> -v $(pwd)/mlflow:/mlflow mlflow-server 
+```
 
 ### If reading derived features from postgres table, assuming the postgres database and table exists with the correct schema::
 
@@ -231,28 +217,6 @@ files:
 ```
 
 ```cmd
-mlflow server --port=<insert port>
-```
-
-```cmd
-set MLFLOW_TRACKING_URI=http://127.0.0.1:<insert port for mlflow server>
-
-set POSTGRES_USER=<insert postgres user>
-set POSTGRES_PWD=<insert postgres password>
-set POSTGRES_PORT=<insert postgres port>
-set POSTGRES_DB=<insert postgres database>
-set POSTGRES_HOST=<insert postgres host>
-
-python src/train_pipeline.py
-```
-
-OR
-
-```cmd
-mlflow server --port=<insert port>
-```
-
-```cmd
 set MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
 
 set POSTGRES_USER=<insert postgres user>
@@ -265,7 +229,7 @@ docker build -t hdb_training:0.1.0 -f docker/training.Dockerfile .
 ```
 
 ```cmd
-docker run --rm --name hdb_training -e POSTGRES_USER=%POSTGRES_USER% -e POSTGRES_PWD=%POSTGRES_PWD% -e POSTGRES_HOST=%POSTGRES_HOST% -e POSTGRES_PORT=%POSTGRES_PORT% -e POSTGRES_DB=%POSTGRES_DB% -e MLFLOW_TRACKING_URI=%MLFLOW_TRACKING_URI% --add-host=host.docker.internal:host-gateway hdb_training:0.1.0
+docker run --rm --name hdb_training -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PWD=$POSTGRES_PWD -e POSTGRES_HOST=$POSTGRES_HOST -e POSTGRES_PORT=$POSTGRES_PORT -e POSTGRES_DB=$POSTGRES_DB -e MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI --add-host=host.docker.internal:host-gateway -v $(pwd)/mlflow:/mlflow hdb_training:0.1.0
 ```
 
 
@@ -282,21 +246,6 @@ files:
       concat: False
 ```
 
-```cmd
-mlflow server --port=<insert port>
-```
-
-```cmd
-set MLFLOW_TRACKING_URI=http://127.0.0.1:<insert port for mlflow server>
-
-python src/train_pipeline.py
-```
-
-OR
-
-```cmd
-mlflow server --port=<insert port>
-```
 
 ```cmd
 set MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
@@ -305,33 +254,11 @@ docker build -t hdb_training:0.1.0 -f docker/training.Dockerfile .
 ```
 
 ```cmd
-docker run --rm --name hdb_training hdb_training:0.1.0
+docker run --rm --name hdb_training hdb_training:0.1.0 -e MLFLOW_TRACKING_URI=%MLFLOW_TRACKING_URI% --add-host=host.docker.internal:host-gateway -v $(pwd)/mlflow:/mlflow hdb_training:0.1.0
 ```
 
 # 5. Deployment
 
-
-```cmd
-mlflow server --port=<insert port>
-```
-
-```cmd
-set MLFLOW_TRACKING_URI=http://127.0.0.1:<insert port for mlflow server>
-set MODEL_URI=<insert mlfow model uri of chosen model>
-set RUN_ID=<insert mlfow run id of chosen model>
-
-python src/fast_api.py
-```
-
-```cmd
-streamlit run src/streamlit_app_local.py
-```
-
-OR
-
-```cmd
-mlflow server --port=<insert port>
-```
 
 ```dockerfile
 ### docker/fast_api.Dockerfile

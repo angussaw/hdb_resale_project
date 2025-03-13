@@ -106,10 +106,10 @@ model_params:
       random_state: 42
 
 mlflow:
-  artifact_name: 'randforest'
-  experiment_name: "randforest hyperparameter tuning v2"
-  description: 'hyperparameter tuning'
-  model_name: 'randforest_hpt_v2.joblib'
+  artifact_name: 'randforest v1'
+  experiment_name: "randforest hyperparameter tuning"
+  description: 'randforest v1'
+  model_name: 'randforest_v1.joblib'
   tags:
     model-architecture: "randforest"
 

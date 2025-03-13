@@ -12,3 +12,4 @@ mlartifacts/**
 multirun/**
 
 .env
+mlflow
