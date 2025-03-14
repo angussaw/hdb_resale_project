@@ -11,5 +11,5 @@ EXPOSE 5005
 CMD mlflow server \
     --host 0.0.0.0 \
     --port 5005 \
-    --default-artifact-root file:/mlflow/artifacts \
+    --default-artifact-root file:/mlflow/experiments \
     --backend-store-uri sqlite:///mlflow/mlflow.db

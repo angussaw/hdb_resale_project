@@ -1,4 +1,4 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-bullseye
 
 ARG USER=user
 ARG ID=1000
@@ -14,12 +14,7 @@ RUN pip3 install -r $REQUIREMENTS_TXT
 
 COPY --chown=$ID:$ID src/ src/
 COPY --chown=$ID:$ID conf/ conf/
-COPY --chown=$ID:$ID models/ models/
 COPY --chown=$ID:$ID data/for_feature_engineering data/for_feature_engineering
-
-ENV MLFLOW_TRACKING_URI=http://host.docker.internal:5005
-ENV MODEL_URI=38d0ed447a714d01998318049ea8a905
-ENV RUN_ID=934552010482666058
 
 EXPOSE 8500
 

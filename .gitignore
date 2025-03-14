@@ -13,3 +13,4 @@ multirun/**
 
 .env
 mlflow
+mlruns

@@ -125,10 +125,10 @@ def train_pipeline(
 
     # Initialise mlflow for logging
     logger.info("Initialising MLFlow...")
-    artifact_name, description_str = hdb_est.utils.init_mlflow(config["mlflow"])
+    _, description_str, experiment_id = hdb_est.utils.init_mlflow(config["mlflow"])
 
     with mlflow.start_run(
-        run_name="Model Training", description=description_str
+        run_name=config["mlflow"]["run_name"], experiment_id=experiment_id, description=description_str
     ) as run:
         logger.info("Starting MLFlow Run...")
         if config["mlflow"]["tags"]:
@@ -143,7 +143,7 @@ def train_pipeline(
         joblib.dump(builder, f"{save_dir}/{model_file_name}")
         mlflow.log_artifact(save_dir)
 
-        model_uri = f"runs:/{run.info.run_id}/model/{model_file_name}"
+        model_uri = f"{experiment_id}/{run.info.run_id}/artifacts/model/{model_file_name}"
         logger.info("Model logged to %s", model_uri)
 
         logger.info("Logging model performance metrics...")
@@ -152,8 +152,7 @@ def train_pipeline(
         logger.info("Logging model visualizations...")
         mlflow.log_artifact(visualizations_save_dir)
         logger.info(
-            "Model performance visualisation available at runs:/%s/graph",
-            run.info.run_id,
+            f"Model performance visualisation available at {experiment_id}/{run.info.run_id}/artifacts/graph",
         )
         features_dict = {}
         features_dict["features"] = list(features.columns)

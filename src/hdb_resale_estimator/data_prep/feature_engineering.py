@@ -67,9 +67,7 @@ class FeatureEngineer:
         derived_features_hdb = pd.concat([hdb_data] + amenity_features_list, axis=1)
 
         if not self.inference_mode:
-            derived_features_hdb["date_context"] = datetime.strptime(
-                os.getenv("DATE"), "%Y-%m-%d"
-            )
+            derived_features_hdb["date_context"] = datetime.now().strftime("%Y-%m-%d")
 
         return derived_features_hdb
 

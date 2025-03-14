@@ -77,61 +77,59 @@ Download the dataset from [here](https://drive.google.com/drive/folders/1dRHd3EO
 ```
 
 
-# 1. Environment
+# 1. Setup
 
+## a. Conda environment
 
 ### Please ensure dependencies adhere to python 3.10
-```cmd
-conda env create -f conda-env.yaml
-conda activate xnn-env
+```bash
+conda create -n hdb-app python=3.10
+conda env update -n hdb-app -f conda-env.yaml
+conda activate hdb-app
 ```
 
-```cmd
+```bash
 pip install requirements.txt
 ```
 
-# 2. Web scraping for amenity coordinates
+## b. Environment Variables
+
+### Fill in `.env` file with the relevant values for the following environment variables:
 
 ```
+POSTGRES_USER=<insert postgres user>
+POSTGRES_PWD=<insert postgres password>
+POSTGRES_PORT=<insert postgres port>
+POSTGRES_DB=<insert postgres database>
+POSTGRES_HOST=host.docker.internal
+
+MLFLOW_TRACKING_URI=http://host.docker.internal:5005
+EXPERIMENT_ID=<insert mlflow experiment id for inference deployment>
+RUN_ID=<insert mlflow run id for inference deployment>
+```
+
+## c. Setting up PostgreSQL and MLflow services
+
+### Make sure your `.env` file contains the necessary environment variables, then run:
+
+```bash
+docker-compose -f docker-compose-setup.yaml up -d
+```
+
+### After the services are up, run the necessary alembic migrations to create the tables required
+
+```bash
+alembic upgrade head
+```
+
+## d. Optional: Web scraping for amenity coordinates
+
+```bash
 python scripts/amenities.py
 ```
 
 
-
 # 3. Data Preparation
-
-### Optional: Creating Postgres table for data preparation
-```sql
-CREATE TABLE <table_name_for_storing_derived_features> (
-    month INTEGER,
-    town VARCHAR(50),
-    flat_type VARCHAR(50),
-    block VARCHAR(50),
-    street_name VARCHAR(100),
-    storey_range VARCHAR(50),
-    floor_area_sqm FLOAT,
-    flat_model VARCHAR(50),
-    lease_commence_date INTEGER,
-    remaining_lease VARCHAR(50),
-    resale_price FLOAT,
-    cpi FLOAT,
-    region VARCHAR(50),
-    year_month VARCHAR(50),
-    year INTEGER,
-    lease_age INTEGER,
-    latitude FLOAT,
-    longitude FLOAT,
-    no_of_malls_within_2_km INTEGER,
-    distance_to_nearest_malls FLOAT,
-    no_of_schools_within_2_km INTEGER,
-    distance_to_nearest_schools FLOAT,
-    no_of_parks_within_2_km INTEGER,
-    distance_to_nearest_parks FLOAT,
-    "no_of_MRT_stations_within_2_km" INTEGER,
-    "distance_to_nearest_MRT_stations" FLOAT, 
-    date_context VARCHAR(50)
-);
-```
 
 ### If saving to postgres, assuming the postgres database and table exists with the correct schema:
 
@@ -142,19 +140,14 @@ files:
     derived_features_table_name: <insert postgres table name to save derived features to>
 ```
 
-```cmd
-set DATE=<current date: "yyy-mm-dd">
-set POSTGRES_USER=<insert postgres user>
-set POSTGRES_PWD=<insert postgres password>
-set POSTGRES_PORT=<insert postgres port>
-set POSTGRES_DB=<insert postgres database>
-set POSTGRES_HOST=host.docker.internal
-
+```bash
 docker build -t hdb_data_prep:0.1.0 -f docker/data_prep.Dockerfile .  
 ```
 
-```cmd
-docker run --rm --name hdb_data_prep -e DATE=%DATE% -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PWD=$POSTGRES_PWD -e POSTGRES_HOST=$POSTGRES_HOST -e POSTGRES_PORT=$POSTGRES_PORT -e POSTGRES_DB=$POSTGRES_DB --add-host=host.docker.internal:host-gateway hdb_data_prep:0.1.0
+```bash
+source .env
+
+docker run --rm --name hdb_data_prep --env-file .env --add-host=host.docker.internal:host-gateway hdb_data_prep:0.1.0
 ```
 
 
@@ -167,25 +160,18 @@ files:
     preprocessed_save_path: "data/preprocessesd/for_training/hdb_preprocessed.csv"
 ```
 
-```cmd
-set DATE=<current date: "yyy-mm-dd">
-
+```bash
 docker build -t hdb_data_prep:0.1.0 -f docker/data_prep.Dockerfile .  
 ```
 
-```cmd
-docker run --rm --name hdb_data_prep -e DATE=%DATE% hdb_data_prep:0.1.0
+```bash
+source .env
+
+docker run --rm --name hdb_data_prep --env-file .env hdb_data_prep:0.1.0
 ```
 
 
 # 4. Training
-
-### Setting up mlflow server
-```cmd
-docker build -t mlflow-server -f docker/mlflow.Dockerfile .
-
-docker run --name mlflow_server -p <insert port for mlflow server>:<insert port for mlflow server> -v $(pwd)/mlflow:/mlflow mlflow-server 
-```
 
 ### If reading derived features from postgres table, assuming the postgres database and table exists with the correct schema::
 
@@ -216,20 +202,14 @@ files:
         - resale_price
 ```
 
-```cmd
-set MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
-
-set POSTGRES_USER=<insert postgres user>
-set POSTGRES_PWD=<insert postgres password>
-set POSTGRES_PORT=<insert postgres port>
-set POSTGRES_DB=<insert postgres database>
-set POSTGRES_HOST=host.docker.internal
-
+```bash
 docker build -t hdb_training:0.1.0 -f docker/training.Dockerfile .  
 ```
 
-```cmd
-docker run --rm --name hdb_training -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PWD=$POSTGRES_PWD -e POSTGRES_HOST=$POSTGRES_HOST -e POSTGRES_PORT=$POSTGRES_PORT -e POSTGRES_DB=$POSTGRES_DB -e MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI --add-host=host.docker.internal:host-gateway -v $(pwd)/mlflow:/mlflow hdb_training:0.1.0
+```bash
+source .env
+
+docker run --rm --name hdb_training --env-file .env --add-host=host.docker.internal:host-gateway -v $(pwd)/mlflow:/mlflow hdb_training:0.1.0
 ```
 
 
@@ -247,29 +227,20 @@ files:
 ```
 
 
-```cmd
-set MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
-
+```bash
 docker build -t hdb_training:0.1.0 -f docker/training.Dockerfile .  
 ```
 
-```cmd
-docker run --rm --name hdb_training hdb_training:0.1.0 -e MLFLOW_TRACKING_URI=%MLFLOW_TRACKING_URI% --add-host=host.docker.internal:host-gateway -v $(pwd)/mlflow:/mlflow hdb_training:0.1.0
+```bash
+source .env
+
+docker run --rm --name hdb_training --env-file .env --add-host=host.docker.internal:host-gateway -v $(pwd)/mlflow:/mlflow hdb_training:0.1.0
 ```
 
 # 5. Deployment
 
-
-```dockerfile
-### docker/fast_api.Dockerfile
-
-ENV MLFLOW_TRACKING_URI=http://host.docker.internal:<insert port for mlflow server>
-ENV MODEL_URI=<insert mlfow model uri of chosen model>
-ENV RUN_ID=<insert mlfow run_id of chosen model>
-```
-
-```cmd
-docker-compose up -d --build
+```bash
+docker-compose -f docker-compose-inference.yaml up -d --build
 ```
 
 

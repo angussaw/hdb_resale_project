@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 # Load model
 mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
-model_uri = os.getenv("MODEL_URI")
+experiment_id = os.getenv("EXPERIMENT_ID")
 run_id = os.getenv("RUN_ID")
-builder = hdb_est.utils.retrieve_builder(run_id=run_id, model_uri=model_uri)
+builder = hdb_est.utils.retrieve_builder(experiment_id=experiment_id, run_id=run_id)
 
 PRED_MODEL = builder.model
 PRED_MODEL_FEATURES = builder.objects["features"]  # before encoding
@@ -47,10 +47,10 @@ def read_root():
     """Landing Page of API
 
     Returns:
-        JSON: {"content": "FastAPI to predict and explain hdb resale prices", "version": "<version>",  "model": "<run_id>/<model_uri>"}
+        JSON: {"content": "FastAPI to predict and explain hdb resale prices", "version": "<version>",  "model": "<experiment_id>/<run_id>"}
     """
     
-    return {"content": "FastAPI to predict and explain hdb resale prices", "version": "1.0", "model": f"{run_id}/{model_uri}"}
+    return {"content": "FastAPI to predict and explain hdb resale prices", "version": "1.0", "model": f"{experiment_id}/{run_id}"}
 
 
 @app.post("/predict")

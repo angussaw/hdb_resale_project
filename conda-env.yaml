@@ -1,4 +1,4 @@
-name: hdb-env
+name: hdb-app
 channels:
   - defaults
 dependencies:

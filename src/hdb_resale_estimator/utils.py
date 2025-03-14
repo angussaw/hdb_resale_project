@@ -71,8 +71,8 @@ def init_mlflow(mlflow_config: dict) -> Tuple[str, str]:
     """initialises mlflow parameters - tracking URI and experiment name.
 
     Takes in a configuration dictionary and sets the tracking URI
-    and MLFlow experiment name. Returns the artifact name and the
-    mlflow run description.
+    and MLFlow experiment name. Returns the artifact name, the
+    mlflow run description and the experiment ID.
 
     Args:
         mlflow_config (dict): A dictionary containing the configurations
@@ -84,20 +84,23 @@ def init_mlflow(mlflow_config: dict) -> Tuple[str, str]:
             will be saved as a hashed datetime.
 
         description (str): Description of the mlflow run, if any.
+
+        experiment_id (str): ID of the MLflow experiment that was set.
     """
 
     logger.info("Logging to MLFlow at %s", os.getenv("MLFLOW_TRACKING_URI"))
 
     mlflow_experiment_name = mlflow_config["experiment_name"]
-    mlflow.set_experiment(mlflow_experiment_name)
-    logger.info("Logging to MLFlow Experiment: %s", mlflow_experiment_name)
+    mlflow_experiment = mlflow.set_experiment(mlflow_experiment_name)
+    mlflow_experiment_id = mlflow_experiment.experiment_id
+    logger.info(f"Logging to MLFlow Experiment Name: {mlflow_experiment_name}, ID: {mlflow_experiment_id}")
 
     if mlflow_config["artifact_name"]:
         artifact_name = mlflow_config["artifact_name"]
     else:
         hashlib.sha1().update(str(time.time()).encode("utf-8"))
         artifact_name = hashlib.sha1().hexdigest()[:15]
-    return artifact_name, mlflow_config.get("description", "")
+    return artifact_name, mlflow_config.get("description", ""), mlflow_experiment_id
 
 
 def read_data(source: str, params: dict) -> pd.DataFrame:
@@ -159,10 +162,7 @@ def find_coordinates(add: str) -> tuple:
         tuple: latitude and longitude coordinates
     """
     # Do not need to change the URL
-    url = (
-        "https://developers.onemap.sg/commonapi/search?returnGeom=Y&getAddrDetails=Y&pageNum=1&searchVal="
-        + add
-    )
+    url = f"https://www.onemap.gov.sg/api/common/elastic/search?searchVal={add}&returnGeom=Y&getAddrDetails=Y&pageNum=1"
 
     # Retrieve information from website
     response = requests.get(url)
@@ -336,10 +336,10 @@ def extract_data_from_psql(table_name: str, columns: list) -> pd.DataFrame:
     check_postgres_env()
     db_engine = create_postgres_engine()
     columns_query = ", ".join(['"' + column + '"' for column in columns])
-    sql_query = f"""
+    sql_query = sqlalchemy.text(f"""
         SELECT {columns_query} FROM {table_name}
         WHERE date_context = (SELECT MAX(date_context) FROM {table_name})
-    """
+    """)
     # Extract data from postgres table
     with db_engine.begin() as conn:
         extracted_df = pd.read_sql(sql_query, conn)
@@ -398,10 +398,7 @@ def check_duplicate_date_input(
     # Get date_context or date_of_inference in string format from data
     reference_column_value = str(np.datetime64(data[reference_column].unique()[0], "D"))
 
-    query = f"""SELECT COUNT(*)
-                FROM {table_name}
-                WHERE {reference_column} = '{reference_column_value}'
-                """
+    query = sqlalchemy.text(f"""SELECT COUNT(*) FROM {table_name} WHERE {reference_column} = '{reference_column_value}'""")
 
     result = conn.execute(query)
     for row in result:
@@ -414,28 +411,28 @@ def check_duplicate_date_input(
 
 
 def retrieve_builder(
-    run_id: str, model_uri: str, destination_path: str = "models"
+    experiment_id: str, run_id: str, destination_path: str = "models"
 ) -> ClassicalModelBuilder:
     """
     Function to retrieve a trained model from MLFLow for inference
 
     Args:
+        experiment_id (str): MLFlow experiment id
         run_id (str): MLFlow run id
-        model_uri (str): MLFlow model uri
         destination_path (str): Path to save model to. Defaults to "models"
 
     Returns:
         ClassicalModelBuilder: Builder object with trained model
     """
 
-    artifact_uri = f"mlflow-artifacts:/{run_id}/{model_uri}/artifacts/model"
-    logger.info("Downloading artifacts from MLFlow model URI: %s...", model_uri)
+    artifact_uri = f"file:///mlflow/experiments/{experiment_id}/{run_id}/artifacts/model"
+    logger.info("Downloading artifacts from MLFlow artifact URI: %s...", artifact_uri)
     try:
         mlflow.artifacts.download_artifacts(
             artifact_uri=artifact_uri, dst_path=destination_path
         )
     except Exception as mlflow_error:
-        logger.exception("Failed to load model: %s", mlflow_error)
+        logger.exception("Failed to load artifact: %s", mlflow_error)
         raise mlflow_error
 
     logger.info("Artifact download successful")

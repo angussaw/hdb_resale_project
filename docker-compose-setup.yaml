@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:14
+    container_name: postgres-hdb
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PWD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/mlflow.Dockerfile
+    container_name: mlflow-server
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./mlflow:/mlflow
+    depends_on:
+      - postgres
